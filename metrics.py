@@ -2,20 +2,17 @@ import nashpy as nash
 import numpy as np
 import random
 
-# assumes games are 2x2 for now
+# we assume games are 2x2 for now
 pure_strategies_2b2 = [[0, 1], [1, 0]]
 
 # Prisoner's Dilemma
 pd = nash.Game(np.array([[3, 0], [5, 1]]), np.array([[3, 5], [0, 1]]))
 
 # Negative Prisoner's Dilemma
-pd_negative = nash.Game(
-    np.array([[-3, -10], [0, -5]]), np.array([[-3, 0], [-10, -5]]))
-
+pd_negative = nash.Game(np.array([[-3, -10], [0, -5]]), np.array([[-3, 0], [-10, -5]]))
 
 # Game of Chicken
-chicken = nash.Game(np.array([[0, -1], [1, -10]]),
-                    np.array([[0, 1], [-1, -10]]))
+chicken = nash.Game(np.array([[0, -1], [1, -10]]), np.array([[0, 1], [-1, -10]]))
 
 # Stug Hunt
 hunt = nash.Game(np.array([[5, 0], [2, 1]]), np.array([[5, 2], [0, 1]]))
@@ -137,8 +134,6 @@ def perturb(principal_game):
     pert_row_payoffs = np.array([[0, 0], [0, 0]], dtype=float)
     pert_col_payoffs = np.array([[0, 0], [0, 0]], dtype=float)
 
-# np.array([[5, 0], [2, 1]])
-
     for i in range(2):
         for j in range(2):
             payoff = row_payoffs[i][j]
@@ -166,7 +161,7 @@ def calculate_measures_and_print(principal_game, agents_game):
     print("Vertical alignment between row principal & agent: " + str(row_align))
     print("Vertical alignment between column principal & agent: " + str(col_align))
     print("Welfare regret: " + str(welf_regret(agents_game)))
-    print("Cross-game regret: " + str(princ_welf_regret(agents_game)))
+    print("Cross-game regret: " + str(princ_welf_regret(principal_game, agents_game)))
     print("")
 
 
