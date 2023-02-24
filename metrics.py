@@ -2,9 +2,6 @@ import nashpy as nash
 import numpy as np
 import random
 
-# we assume games are 2x2 for now
-pure_strategies_2b2 = [[0, 1], [1, 0]]
-
 # Prisoner's Dilemma
 pd = nash.Game(np.array([[3, 0], [5, 1]]), np.array([[3, 5], [0, 1]]))
 
@@ -33,6 +30,9 @@ games = {
     "Stug Hut": hunt,
     "Matching Pennies": mp,
     "Battle of the Sexes": bos}
+
+# we assume games are 2x2 for now
+pure_strategies_2b2 = [[0, 1], [1, 0]]
 
 
 def price_of_anarchy(game):
@@ -152,17 +152,17 @@ def perturb(principal_game):
 
 
 def calculate_measures_and_print(principal_game, agents_game):
-    print("PRINCIPALS")
+    print("====== PRINCIPALS ======")
     print(principal_game)
-    print("AGENTS")
+    print("\n","====== AGENTS ======")
     print(agents_game)
-    print("Horizontal alignment between agents: " + str(epic_horiz(agents_game)))
+
+    print("\n","====== MEASURES ======")
+    print("Horizontal Alignment (EPIC): " + str(epic_horiz(agents_game)))
     row_align, col_align = epic_vertic(principal_game, agents_game)
-    print("Vertical alignment between row principal & agent: " + str(row_align))
-    print("Vertical alignment between column principal & agent: " + str(col_align))
+    print("Vertical Alignment (Principal(ROW)-Agent): " + str(row_align))
+    print("Vertical Alignment (Principal(COL)-Agnet): " + str(col_align))
     print("Welfare regret: " + str(welf_regret(agents_game)))
     print("Cross-game regret: " + str(princ_welf_regret(principal_game, agents_game)))
-    print("")
-
 
 calculate_measures_and_print(bos, perturb(bos))
