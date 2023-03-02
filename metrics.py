@@ -23,13 +23,17 @@ mp = nash.Game(np.array([[1, -1], [-1, 1]]), np.array([[-1, 1], [1, -1]]))
 # Battle of the Sexes
 bos = nash.Game(np.array([[1, 0], [0, 2]]), np.array([[2, 0], [0, 1]]))
 
+# Test Game
+test = nash.Game(np.array([[1, 0.9999], [1, 1.00001]]), np.array([[1, 1.00001], [1, 1]]))
+
 games = {
     "Prisoner's dilemma": pd,
     "Prisoner's dilemma (negative pay-offs)": pd_negative,
     "Game of Chicken": chicken,
     "Stug Hut": hunt,
     "Matching Pennies": mp,
-    "Battle of the Sexes": bos}
+    "Battle of the Sexes": bos,
+    "Test game": test}
 
 # we assume games are 2x2 for now
 pure_strategies_2b2 = [[0, 1], [1, 0]]
@@ -151,6 +155,7 @@ def perturb(principal_game):
     return agent_game
 
 
+# TODO: add vertical capabilities (epsilon best response)
 def calculate_measures_and_print(principal_game, agents_game):
     print("====== PRINCIPALS ======")
     print(principal_game)
@@ -165,4 +170,20 @@ def calculate_measures_and_print(principal_game, agents_game):
     print("Welfare regret: " + str(welf_regret(agents_game)))
     print("Cross-game regret: " + str(princ_welf_regret(principal_game, agents_game)))
 
-calculate_measures_and_print(bos, perturb(bos))
+    # The Grand Equasion
+    # the parentheses are for clarity only, we assume VC to be 1.
+    # normalze from [-1, 1] to [0, 1]
+    var = (row_align +1) / 2
+    vac = (col_align +1) / 2
+    ha = (epic_horiz(agents_game) + 1) /2
+
+    print("\n","====== The Grand Equasion ======")
+    print(f"C = ((VA-R * VA-C) * VC) * (HA * HC)")
+    print(f"C = ((VA-R[{var}] * VA-C[{vac}]) * VC[{1}]) * (HA[{ha}] * HC[{1}])")
+    print("")
+    print(f"C = (VA * VC) * H")
+    print(f"C = ((VA[{var * vac}]) * VC[{1}]) * H[{ha}])")
+    print(f"C = {var * vac * ha}")
+
+
+calculate_measures_and_print(test, test)
