@@ -35,7 +35,7 @@ games = {
     "Battle of the Sexes": bos,
     "Test game": test}
 
-# we assume games are 2x2 for now
+# we assume games are 2x2 for now (TODO: update this)
 pure_strategies_2b2 = [[0, 1], [1, 0]]
 
 
