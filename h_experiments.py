@@ -259,6 +259,6 @@ def plot_iterations_va_hcc(num_iterations, double: bool):
 
 # plot_iterations_ha(1000)
 # plot_iterations_va(1000, True)
-# plot_iterations_va(1000, False)
+#plot_iterations_va(1000, False)
 plot_iterations_va_hcc(1000, True)
-plot_iterations_va_hcc(1000, False)
+# plot_iterations_va_hcc(1000, False)
