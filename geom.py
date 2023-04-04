@@ -3,12 +3,23 @@ import numpy as np
 
 
 def standardise(v:np.ndarray) -> np.ndarray:
-    v_flat = v.flatten()
-    v_centred = v_flat - v_flat.mean()
-    return v_centred / np.linalg.norm(v_centred)
+    '''
+    Zero-centre and normalise vector(s).
+
+    Applied along final axis, preserving batch dims if vectorised.
+    '''
+    v_centred = v - v.mean(axis=-1, keepdims=True)
+    return v_centred / np.linalg.norm(v_centred, axis=-1, keepdims=True)
 
 def get_angle(v1:np.ndarray, v2:np.ndarray) -> float:
-    return np.arccos(np.dot(v1 / np.linalg.norm(v1), v2 / np.linalg.norm(v2)))
+    '''
+    Get angle between vector(s).
+
+    Applied along final axis, preserving batch dims if vectorised.
+    '''
+    u1 = v1 / np.linalg.norm(v1, axis=-1, keepdims=True)
+    u2 = v2 / np.linalg.norm(v2, axis=-1, keepdims=True)
+    return np.arccos(np.einsum('...i,...i', u1, u2))
 
 def orthogonal_project_planar(v1:np.ndarray, v2:np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     '''
@@ -16,9 +27,12 @@ def orthogonal_project_planar(v1:np.ndarray, v2:np.ndarray) -> Tuple[np.ndarray,
 
     Input vectors must be linearly independent.
     '''
-    u1 = v1 / np.linalg.norm(v1)
-    o2 = v2 - np.dot(u1, v2) * u1 # orthogonal projection of v2 onto v1
-    u2 = o2 / np.linalg.norm(o2)
+    u1 = v1 / np.linalg.norm(v1, axis=-1, keepdims=True)
+    print(np.einsum('...i,...i', u1, v2)) # inner product...? How to deal with v1 _not_ vector?
+    print(u1 * np.einsum('...i,...i', u1, v2))
+    o2 = v2 - np.einsum('...i,...i', u1, v2) * u1 # orthogonal projection of v2 onto v1
+    print(o2)
+    u2 = o2 / np.linalg.norm(o2, axis=-1, keepdims=True)
     return u1, u2
 
 def get_rotation_matrix(a:np.ndarray, b:np.ndarray, theta:float) -> np.ndarray:
