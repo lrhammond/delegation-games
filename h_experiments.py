@@ -2,6 +2,8 @@ import math
 import numpy as np
 import nashpy as nash
 import matplotlib.pyplot as plt
+import operator
+import functools
 
 
 # NUMBER OF STRATEGIES AND GAME SIZE IS HARDCODED TO FOR NOW (TO 2x2)
@@ -28,6 +30,93 @@ def welf_regret(game):
     max_strat = np.max(list(map(sum, pure_outcomes)))
 
     min_in_equil = np.min(list(map(sum, equil_outcomes)))
+
+    return max_strat - min_in_equil
+
+
+def welf_regret_returns_eqs(game):
+    # nash equilibria
+    eqs = list(game.support_enumeration())
+
+    # list of expected utilities for both players for pure strategies
+    pure_outcomes = [game[s_row, s_col]
+                     for s_row in pure_strategies_2b2 for s_col in pure_strategies_2b2]
+
+    # list of expected utilities for both players in nash equilibria
+    equil_outcomes = [game[s_row, s_col]
+                      for (s_row, s_col) in eqs]
+
+    # we only need to check pure strategies because the maximum is
+    # necessarily among these
+    max_strat = np.max(list(map(sum, pure_outcomes)))
+
+    min_in_equil = np.min(list(map(sum, equil_outcomes)))
+
+    return max_strat - min_in_equil, pure_outcomes, equil_outcomes, eqs
+
+
+def welf_regret_returns_relative(game):
+    # nash equilibria
+    eqs = list(game.support_enumeration())
+
+    # list of expected utilities for both players for pure strategies
+    pure_outcomes = [game[s_row, s_col]
+                     for s_row in pure_strategies_2b2 for s_col in pure_strategies_2b2]
+
+    # list of expected utilities for both players in nash equilibria
+    equil_outcomes = [game[s_row, s_col]
+                      for (s_row, s_col) in eqs]
+
+    # we only need to check pure strategies because the maximum is
+    # necessarily among these
+    max_strat = np.max(list(map(sum, pure_outcomes)))
+
+    min_in_equil = np.min(list(map(sum, equil_outcomes)))
+    min_overall = np.min(list(map(sum, pure_outcomes)))
+
+    return (max_strat - min_in_equil)/(max_strat - min_overall)
+
+
+def product_welf_regret_returns_relative(game):
+    # nash equilibria
+    eqs = list(game.support_enumeration())
+
+    # list of expected utilities for both players for pure strategies
+    pure_outcomes = [game[s_row, s_col]
+                     for s_row in pure_strategies_2b2 for s_col in pure_strategies_2b2]
+
+    # list of expected utilities for both players in nash equilibria
+    equil_outcomes = [game[s_row, s_col]
+                      for (s_row, s_col) in eqs]
+
+    # we only need to check pure strategies because the maximum is
+    # necessarily among these
+    max_strat = np.max(list(functools.reduce(operator.mul, pure_outcomes, 1)))
+
+    min_in_equil = np.min(
+        list(functools.reduce(operator.mul, equil_outcomes, 1)))
+    min_overall = np.min(
+        list(functools.reduce(operator.mul, pure_outcomes, 1)))
+    return (max_strat - min_in_equil)/(max_strat - min_overall)
+
+
+def product_welf_regret(game):
+    # nash equilibria
+    eqs = list(game.support_enumeration())
+
+    # list of expected utilities for both players for pure strategies
+    pure_outcomes = [game[s_row, s_col]
+                     for s_row in pure_strategies_2b2 for s_col in pure_strategies_2b2]
+
+    # list of expected utilities for both players in nash equilibria
+    equil_outcomes = [game[s_row, s_col]
+                      for (s_row, s_col) in eqs]
+
+    # we only need to check pure strategies because the maximum is
+    # necessarily among these
+    max_strat = np.max(list(functools.reduce(operator.mul, pure_outcomes, 1)))
+    min_in_equil = np.min(
+        list(functools.reduce(operator.mul, equil_outcomes, 1)))
 
     return max_strat - min_in_equil
 
@@ -103,15 +192,24 @@ def welf_regr_vs_horiz_align():
     # sample row & col payoffs from uniform distribution [0,1]
     # min-max normalise these between [0,1]
     normalised_utilities_row = max_min_normalise(
-        np.random.uniform(0, 1, size=(2, 2)))
+        np.random.uniform(0, 25, size=(2, 2)))
+    # max_min_normalise(
+    # np.random.uniform(0, 20000, size=(2, 2)))
+    #
+    #
     normalised_utilities_col = max_min_normalise(
-        np.random.uniform(0, 1, size=(2, 2)))
+        np.random.uniform(0, 25, size=(2, 2)))
+    # max_min_normalise(
+    # np.random.uniform(0, 250, size=(2, 2)))
+    #
+    #
 
     # for our purposes G = G'
     game = nash.Game(normalised_utilities_row, normalised_utilities_col)
 
     # note: in this case, principals_welf_regret = welf_regret
-    return (welf_regret(game), epic_horiz(game), game)
+    # return (welf_regret_returns_eqs(game), welf_regret_returns_relative(game), epic_horiz(game), game)
+    return (product_welf_regret(game), product_welf_regret_returns_relative(game), epic_horiz(game))
 
 
 def plot_iterations_ha(num_iterations):
@@ -119,31 +217,54 @@ def plot_iterations_ha(num_iterations):
     x_axis = []
     y_axis = []
     # first_in_q1, first_in_q2, first_in_q3, first_in_q4 = True, True, True, True
+    y2_axis = []
 
     for i in range(num_iterations):
-        welf_regret, horiz_align, game = welf_regr_vs_horiz_align()
+        # (welf_regret, pure, exp,
+        #  eqs), rel_welf, horiz_align, game = welf_regr_vs_horiz_align()
+        welf_regret, rel_welf, horiz_align = welf_regr_vs_horiz_align()
+
         x_axis.append(horiz_align)
         y_axis.append(welf_regret)
-    #     if horiz_align <= 0.5 and welf_regret >= 1 and first_in_q1:
-    #         print("QUADRANT 1")
-    #         print(game)
-    #         first_in_q1 = False
-    #     if horiz_align >= 0.5 and welf_regret >= 1 and first_in_q2:
-    #         print("QUADRANT 2")
-    #         print(game)
-    #         first_in_q2 = False
-    #     if horiz_align <= 0.5 and welf_regret <= 1 and first_in_q3:
-    #         print("QUADRANT 3")
-    #         print(game)
-    #         first_in_q3 = False
-    #     if horiz_align >= 0.5 and welf_regret <= 1 and first_in_q4:
-    #         print("QUADRANT 4")
-    #         print(game)
-    #         first_in_q4 = False
+        y2_axis.append(rel_welf)
+        # if horiz_align >= 0.9 and welf_regret <= 0.25:
+        #     # print("QUADRANT 1")
+        #     print(game)
+        #     print("HA: " + str(horiz_align) + " WR: " +
+        #           str(welf_regret) + "REL WR: " + str(rel_welf))
+        #     print("PURE welfare: " + str(pure) + "EQS EXPECTED " +
+        #           str(exp) + "EQUILIBRIA: " + str(eqs))
+        #     first_in_q1 = False
+        # if horiz_align >= 0.5 and welf_regret >= 1 and first_in_q2:
+        #     print("QUADRANT 2")
+        #     print(game)
+        #     print("HA: " + str(horiz_align) + " WR: " + str(welf_regret))
+        #     print("PURE welfare: " + str(pure) + "EQS EXPECTED " +
+        #           str(exp) + "EQUILIBRIA: " + str(eqs))
+        #     first_in_q2 = False
+        # if horiz_align <= 0.5 and welf_regret <= 1 and first_in_q3:
+        #     print("QUADRANT 3")
+        #     print(game)
+        #     print("HA: " + str(horiz_align) + " WR: " + str(welf_regret))
+        #     print("PURE welfare: " + str(pure) + "EQS EXPECTED " +
+        #           str(exp) + "EQUILIBRIA: " + str(eqs))
+        #     first_in_q3 = False
+        # if horiz_align >= 0.5 and welf_regret <= 1 and first_in_q4:
+        #     print("QUADRANT 4")
+        #     print(game)
+        #     print("HA: " + str(horiz_align) + " WR: " + str(welf_regret))
+        #     print("PURE welfare: " + str(pure) + "EQS EXPECTED " +
+        #           str(exp) + "EQUILIBRIA: " + str(eqs))
+        #     first_in_q4 = False
 
     plt.scatter(x_axis, y_axis)
     plt.xlabel('Distance from Horizontal Alignment')
     plt.ylabel('Principals\' Welfare Regret')
+    plt.title('Random sample of games (uniform between [0,1])')
+    plt.show()
+    plt.scatter(x_axis, y2_axis)
+    plt.xlabel('Distance from Horizontal Alignment')
+    plt.ylabel('Principals\' RELATIVE Welfare Regret')
     plt.title('Random sample of games (uniform between [0,1])')
     plt.show()
 
@@ -257,8 +378,8 @@ def plot_iterations_va_hcc(num_iterations, double: bool):
     plt.show()
 
 
-# plot_iterations_ha(1000)
+plot_iterations_ha(1000)
 # plot_iterations_va(1000, True)
 #plot_iterations_va(1000, False)
-plot_iterations_va_hcc(1000, True)
+# plot_iterations_va_hcc(1000, True)
 # plot_iterations_va_hcc(1000, False)
