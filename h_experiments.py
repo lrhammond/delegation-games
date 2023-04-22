@@ -220,8 +220,7 @@ def plot_iterations_ha(num_iterations):
     y2_axis = []
 
     for i in range(num_iterations):
-        # (welf_regret, pure, exp,
-        #  eqs), rel_welf, horiz_align, game = welf_regr_vs_horiz_align()
+        # (welf_regret, pure, exp, eqs), rel_welf, horiz_align, game = welf_regr_vs_horiz_align()
         welf_regret, rel_welf, horiz_align = welf_regr_vs_horiz_align()
 
         x_axis.append(horiz_align)
@@ -287,8 +286,7 @@ def welf_regr_vs_vertic_align():
     normalised_utilities_agents = max_min_normalise(
         np.random.uniform(0, 1, size=(2, 2)))
 
-    principal_game = nash.Game(
-        normalised_utilities_principals, normalised_utilities_principals)
+    principal_game = nash.Game(normalised_utilities_principals, normalised_utilities_principals)
     agent_game = nash.Game(normalised_utilities_agents,
                            normalised_utilities_agents)
 
@@ -306,8 +304,7 @@ def welf_regr_vs_single_vertic_align():
     normalised_utilities_agent = max_min_normalise(
         np.random.uniform(0, 1, size=(2, 2)))
 
-    principal_game = nash.Game(
-        normalised_utilities_principals, normalised_utilities_agent)
+    principal_game = nash.Game(normalised_utilities_principals, normalised_utilities_agent)
 
     # only row agent is misaligned
     agent_game = nash.Game(normalised_utilities_agent,
@@ -335,8 +332,7 @@ def plot_iterations_va(num_iterations, double: bool):
 
     plt.scatter(x_axis, y_axis)
     if double:
-        plt.xlabel(
-            'Distance from Vertical Alignment of both principal-agent pairs')
+        plt.xlabel('Distance from Vertical Alignment of both principal-agent pairs')
 
     else:
         plt.xlabel('Distance from Vertical Alignment')
@@ -365,20 +361,18 @@ def plot_iterations_va_hcc(num_iterations, double: bool):
         if horiz_cap:
             y_axis.append(welf_regret)
 
-    plt.scatter(x_axis, y_axis)
+    plt.scatter(x_axis, y_axis, marker="x", s=10)
     if double:
-        plt.xlabel(
-            'Distance from Vertical Alignment of both principal-agent pairs')
+        plt.xlabel('Distance from Vertical Alignment of both principal-agent pairs')
 
     else:
         plt.xlabel('Distance from Vertical Alignment')
     plt.ylabel('Principals\' Welfare Regret')
-    plt.title(
-        'HC controlled sandom sample of games')
+    plt.title('HC controlled sandom sample of games')
     plt.show()
 
 
-plot_iterations_ha(1000)
+plot_iterations_ha(10000)
 # plot_iterations_va(1000, True)
 #plot_iterations_va(1000, False)
 # plot_iterations_va_hcc(1000, True)

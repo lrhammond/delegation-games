@@ -23,7 +23,7 @@ mp = nash.Game(np.array([[1, -1], [-1, 1]]), np.array([[-1, 1], [1, -1]]))
 bos = nash.Game(np.array([[1, 0], [0, 2]]), np.array([[2, 0], [0, 1]]))
 
 # Test Game
-test = nash.Game(np.array([[1, 0.9999], [1, 1.00001]]), np.array([[1, 1.00001], [1, 1]]))
+test = nash.Game(np.array([[1.0, 0.9999], [1.0, 1.00001]]), np.array([[1.0, 1.00001], [1.0, 1.0]]))
 
 games = {
     "Prisoner's dilemma": pd,
