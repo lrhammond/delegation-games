@@ -73,8 +73,10 @@ def welf_regret_returns_relative(game):
 
     min_in_equil = np.min(list(map(sum, equil_outcomes)))
     min_overall = np.min(list(map(sum, pure_outcomes)))
-
-    return (max_strat - min_in_equil)/(max_strat - min_overall)
+    if max_strat == min_overall:
+        return False
+    else:
+        return (max_strat - min_in_equil)/(max_strat - min_overall)
 
 
 def product_welf_regret_returns_relative(game):
@@ -178,6 +180,10 @@ def max_min_normalise(data: np.array) -> np.array:
     return (data-np.min(data))/(np.max(data)-np.min(data))
 
 
+def standard_normalise(data: np.array) -> np.array:
+    return (data-np.mean(data))/(np.std(data))
+
+
 """
 WELF REGRET vs HORIZONTAL ALIGNMENT 
 
@@ -191,14 +197,14 @@ def welf_regr_vs_horiz_align():
 
     # sample row & col payoffs from uniform distribution [0,1]
     # min-max normalise these between [0,1]
-    normalised_utilities_row = max_min_normalise(
-        np.random.uniform(0, 25, size=(2, 2)))
+    normalised_utilities_row = standard_normalise(
+        np.random.uniform(0, 1, size=(2, 2)))
     # max_min_normalise(
     # np.random.uniform(0, 20000, size=(2, 2)))
     #
     #
-    normalised_utilities_col = max_min_normalise(
-        np.random.uniform(0, 25, size=(2, 2)))
+    normalised_utilities_col = standard_normalise(
+        np.random.uniform(0, 1, size=(2, 2)))
     # max_min_normalise(
     # np.random.uniform(0, 250, size=(2, 2)))
     #
@@ -209,7 +215,10 @@ def welf_regr_vs_horiz_align():
 
     # note: in this case, principals_welf_regret = welf_regret
     # return (welf_regret_returns_eqs(game), welf_regret_returns_relative(game), epic_horiz(game), game)
-    return (product_welf_regret(game), product_welf_regret_returns_relative(game), epic_horiz(game))
+    if welf_regret_returns_relative(game) == False:
+        return welf_regr_vs_horiz_align()
+    else:
+        return (welf_regret(game), welf_regret_returns_relative(game), epic_horiz(game))
 
 
 def plot_iterations_ha(num_iterations):
@@ -257,12 +266,12 @@ def plot_iterations_ha(num_iterations):
         #           str(exp) + "EQUILIBRIA: " + str(eqs))
         #     first_in_q4 = False
 
-    plt.scatter(x_axis, y_axis)
+    plt.scatter(x_axis, y_axis, marker="x", s=10, alpha=0.5)
     plt.xlabel('Distance from Horizontal Alignment')
     plt.ylabel('Principals\' Welfare Regret')
     plt.title('Random sample of games (uniform between [0,1])')
     plt.show()
-    plt.scatter(x_axis, y2_axis)
+    plt.scatter(x_axis, y2_axis, marker="x", s=10, alpha=0.5)
     plt.xlabel('Distance from Horizontal Alignment')
     plt.ylabel('Principals\' RELATIVE Welfare Regret')
     plt.title('Random sample of games (uniform between [0,1])')
@@ -287,7 +296,8 @@ def welf_regr_vs_vertic_align():
     normalised_utilities_agents = max_min_normalise(
         np.random.uniform(0, 1, size=(2, 2)))
 
-    principal_game = nash.Game(normalised_utilities_principals, normalised_utilities_principals)
+    principal_game = nash.Game(
+        normalised_utilities_principals, normalised_utilities_principals)
     agent_game = nash.Game(normalised_utilities_agents,
                            normalised_utilities_agents)
 
@@ -305,7 +315,8 @@ def welf_regr_vs_single_vertic_align():
     normalised_utilities_agent = max_min_normalise(
         np.random.uniform(0, 1, size=(2, 2)))
 
-    principal_game = nash.Game(normalised_utilities_principals, normalised_utilities_agent)
+    principal_game = nash.Game(
+        normalised_utilities_principals, normalised_utilities_agent)
 
     # only row agent is misaligned
     agent_game = nash.Game(normalised_utilities_agent,
@@ -333,7 +344,8 @@ def plot_iterations_va(num_iterations, double: bool):
 
     plt.scatter(x_axis, y_axis)
     if double:
-        plt.xlabel('Distance from Vertical Alignment of both principal-agent pairs')
+        plt.xlabel(
+            'Distance from Vertical Alignment of both principal-agent pairs')
 
     else:
         plt.xlabel('Distance from Vertical Alignment')
@@ -364,7 +376,8 @@ def plot_iterations_va_hcc(num_iterations, double: bool):
 
     plt.scatter(x_axis, y_axis)
     if double:
-        plt.xlabel('Distance from Vertical Alignment of both principal-agent pairs')
+        plt.xlabel(
+            'Distance from Vertical Alignment of both principal-agent pairs')
 
     else:
         plt.xlabel('Distance from Vertical Alignment')
@@ -373,7 +386,7 @@ def plot_iterations_va_hcc(num_iterations, double: bool):
     plt.show()
 
 
-plot_iterations_ha(1000)
+plot_iterations_ha(10000)
 # plot_iterations_va(1000, True)
 #plot_iterations_va(1000, False)
 # plot_iterations_va_hcc(1000, True)
