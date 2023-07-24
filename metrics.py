@@ -1,8 +1,8 @@
-from typing import Callable, Sequence
+from typing import Callable, List, Sequence, Union
 import nashpy as nash
 import numpy as np
 
-Welfare = Callable[[Sequence[float]], float]
+Welfare = Union[Callable[[Sequence[np.ndarray]], np.ndarray], Callable[[Sequence[float]], float]]
 
 # we assume games are 2x2 for now (TODO: update this)
 pure_strategies_2b2 = [[0, 1], [1, 0]]
@@ -70,6 +70,12 @@ def princ_welf_regret(principal_game:nash.Game, agents_game:nash.Game, welfare:W
     min_in_equil = np.min(equil_welfares)
 
     return max_strat - min_in_equil
+
+def welfare_regret_general(payoffs:List[np.ndarray], strategy:np.ndarray, welfare:Welfare=sum) -> float:
+    pure_welfares = welfare(payoffs)
+    max_welfare = pure_welfares.max()
+    actual_welfare = np.sum(pure_welfares * strategy)
+    return max_welfare - actual_welfare
 
 def epic(payoffs_a:np.ndarray, payoffs_b:np.ndarray) -> float:
     # assuming uniform distribution
