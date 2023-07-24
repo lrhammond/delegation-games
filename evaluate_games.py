@@ -11,10 +11,9 @@ Simple stat over a delegation game, descriptive in fully welfare-calibrated game
 
 def get_stat(dg:DelegationGame) -> SimpleStat:
     principals, agents = dg
-    epic_left = metrics.epic(principals[0], agents[0])
-    epic_right = metrics.epic(principals[1], agents[1])
+    epics = [metrics.epic(p, a) for p, a in zip(principals.payoffs, agents.payoffs)]
     principals_game = flatgame_to_game(principals)
     agents_game = flatgame_to_game(agents)
     welfare_regret = metrics.welf_regret(agents_game)
     principals_welfare_regret = metrics.princ_welf_regret(principals_game, agents_game)
-    return SimpleStat(epic_left+epic_right, welfare_regret, principals_welfare_regret)
+    return SimpleStat(sum(epics), welfare_regret, principals_welfare_regret)
