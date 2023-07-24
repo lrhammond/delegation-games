@@ -4,6 +4,7 @@ from typing import NamedTuple
 
 import games
 import geom
+from statistical import sample_simplex
 
 
 class FlatGame(NamedTuple):
@@ -41,7 +42,7 @@ def generate_delegation_games_with_alignment_bounds(max_epic=.2, min_epic=.0, m1
     def payoff():
         return geom.standardise(games.uniform_2x2_payoff().flatten())
     while True:
-        epics = np.random.uniform(min_epic, max_epic, 2)
+        epics = np.random.uniform(min_epic, max_epic) * sample_simplex(2) * 2
         principals = FlatGame(payoff(), payoff())
         agents = FlatGame(
             m1*geom.random_epic_distance_step(principals[0], epics[0]),
