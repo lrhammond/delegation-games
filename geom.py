@@ -58,6 +58,6 @@ def random_epic_distance_step(v:np.ndarray, d_epic:float) -> np.ndarray:
     '''
     u = standardise(v)
     random_heading = random_heading_in_zero_mean_subspace(v.shape[0])
-    theta = 2 * np.arcsin(d_epic)
+    theta = 2 * np.arcsin(np.minimum(1, d_epic))
     rotated = rotate_in_plane(u, random_heading, theta)
     return rotated
