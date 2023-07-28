@@ -50,7 +50,11 @@ def generate_delegation_games_with_alignment_bounds(n_players=2, n_outcomes=4, m
     def payoff():
         return am.standardise(np.random.uniform(size=n_outcomes))
     while True:
-        epics = np.random.uniform(min_epic, max_epic) * sample_simplex(n_players) * n_players
+        total_misalignment = np.random.uniform(min_epic, max_epic) * n_players
+        # TODO simplex sample can produce impossibly-large misalignment for larger shares
+        # geom currently just truncates to max possible misalignment
+        # could instead mix the simplex sample with a uniform share of misalignment depending on how large total is
+        epics = total_misalignment * sample_simplex(n_players)
         principals = FlatGame([payoff() for _ in range(n_players)])
         agents = FlatGame(
             [m[i]*am.standardise(geom.random_epic_distance_step(principals.payoffs[i], epics[i])) for i in range(n_players)]

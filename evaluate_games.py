@@ -65,6 +65,8 @@ def get_strategy_with_welfare_regret(game:FlatGame, target_welfare_regret:float)
 
     If target is unfeasibly high, return pessimal strategy with worst possible welfare regret.
 
+    TODO this is where the strategy is fully correlated, rather than marginal per player
+    TODO to change that, the FlatGame would need to contain more structure, and the search for a strategy would be more complicated to respect that structure
     NB the strategy does not take into account game structure, so it may be correlated/entirely mixed over outcomes.
 
     :param game: the game with payoffs
