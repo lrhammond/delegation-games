@@ -8,6 +8,9 @@ Welfare = Union[Callable[[Sequence[np.ndarray]], np.ndarray], Callable[[Sequence
 pure_strategies_2b2 = [[0, 1], [1, 0]]
 
 def price_of_anarchy(game:nash.Game):
+    '''
+    DEPRECATED
+    '''
     # nash equilibria
     eqs = list(game.support_enumeration())
 
@@ -31,6 +34,9 @@ def price_of_anarchy(game:nash.Game):
 
 
 def welf_regret(game:nash.Game, welfare:Welfare=sum) -> float:
+    '''
+    DEPRECATED (subsumed by general)
+    '''
     # nash equilibria
     eqs = list(game.support_enumeration())
 
@@ -52,6 +58,9 @@ def welf_regret(game:nash.Game, welfare:Welfare=sum) -> float:
 
 
 def princ_welf_regret(principal_game:nash.Game, agents_game:nash.Game, welfare:Welfare=sum) -> float:
+    '''
+    DEPRECATED (subsumed by general)
+    '''
     # nash equilibria
     eqs = list(agents_game.support_enumeration())
 
@@ -72,6 +81,13 @@ def princ_welf_regret(principal_game:nash.Game, agents_game:nash.Game, welfare:W
     return max_strat - min_in_equil
 
 def welfare_regret_general(payoffs:List[np.ndarray], strategy:np.ndarray, welfare:Welfare=sum) -> float:
+    '''
+    Given payoffs of some players, and a (mixed) strategy,
+    compute the welfare regret of the strategy.
+
+    Payoffs should be flat representation,
+    and strategy should be a flat representation summing to 1.
+    '''
     pure_welfares = welfare(payoffs)
     max_welfare = pure_welfares.max()
     actual_welfare = np.sum(pure_welfares * strategy)
