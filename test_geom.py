@@ -1,6 +1,6 @@
 import numpy as np
 
-from alignment import EPIC, distance as alignment_distance
+from alignment import EPIC
 from geom import orthogonal_project_planar, standardise, get_angle, random_heading_in_zero_mean_subspace, rotate_in_plane, random_epic_distance_step
 
 seed = 1282
@@ -76,5 +76,5 @@ def test_random_epic_step():
         a = standardise(rng.randn(16))
         d_epic = rng.uniform(0, 1)
         a_stepped = random_epic_distance_step(a, d_epic, rng)
-        d_epic_recovered = alignment_distance(EPIC, a, a_stepped)
+        d_epic_recovered = EPIC.distance(a, a_stepped)
         assert np.allclose(d_epic, d_epic_recovered)

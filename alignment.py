@@ -9,29 +9,45 @@ class StandardisationConstants(NamedTuple):
     K_m:float
     K_d:float
 
-Standardisation = Callable[[np.ndarray], np.ndarray]
-'''Passed a utility function array, returns standardised equivalent'''
+_Shift = Callable[[np.ndarray], float]
+'''Retrieve the off-centre affine-equivariant shift of a utility function according to some rule'''
+
+_Scale = Callable[[np.ndarray], float]
+'''Retrieve the scale of a centred utility function according to some rule'''
 
 StandardisedDistance = Callable[[np.ndarray, np.ndarray], float]
 
 class AlignmentMetric(NamedTuple):
-    standardise:Standardisation
+    shift:_Shift
+    scale:_Scale
     standardised_distance:StandardisedDistance
     constants:StandardisationConstants
     name:str
 
-def distance(am:AlignmentMetric, u:np.ndarray, v:np.ndarray) -> float:
-    u_s = am.standardise(u)
-    v_s = am.standardise(v)
-    return am.standardised_distance(u_s, v_s)
+    def standardise(self, u:np.ndarray) -> np.ndarray:
+        '''
+        Given a utility vector, produce the scaled and shifted standardised representative equivalent to it.
+        '''
+        centred = u - self.shift(u)
+        scale = self.scale(centred)
+        return np.where(scale > 0, centred / scale, np.zeros_like(centred))
 
-def epic_standardisation(u:np.ndarray) -> np.ndarray:
-    u_flat = u.flatten()
-    u_centred = u_flat - u_flat.mean()
-    return u_centred / np.linalg.norm(u_centred)
+    def distance(self, u:np.ndarray, v:np.ndarray) -> float:
+        '''
+        Given two utility vectors, produce the standardised preference distance between them.
+        '''
+        u_s = self.standardise(u)
+        v_s = self.standardise(v)
+        return self.standardised_distance(u_s, v_s)
+
+def epic_shift(u:np.ndarray) -> float:
+    return u.mean(axis=-1, keepdims=True)
+
+def epic_scale(u:np.ndarray) -> float:
+    return np.linalg.norm(u, axis=-1, keepdims=True)
 
 def epic_distance(u:np.ndarray, v:np.ndarray) -> float:
-    return np.linalg.norm(u - v) / 2
+    return np.linalg.norm(u - v, axis=-1) / 2
 
 EPIC_CONSTANTS = StandardisationConstants(K_m=np.sqrt(2), K_d=2)
 '''
@@ -46,17 +62,16 @@ K_d is the largest ratio L^\infty can have to the (0-1 scaled) EPIC 2-norm
 - 2-norm is a tight lower-bound for \infty-norm
 '''
 
-EPIC = AlignmentMetric(standardise=epic_standardisation, standardised_distance=epic_distance, constants=EPIC_CONSTANTS, name='EPIC')
+EPIC = AlignmentMetric(shift=epic_shift, scale=epic_scale, standardised_distance=epic_distance, constants=EPIC_CONSTANTS, name='EPIC')
 
-def max_standardisation(u:np.ndarray) -> np.ndarray:
-    u_flat = u.flatten()
-    u_min = u_flat.min()
-    u_max = u_flat.max()
-    u_centred = u - (u_max+u_min)/2
-    return 2 * u_centred / (u_max-u_min)
+def max_shift(u:np.ndarray) -> float:
+    return (u.min(axis=-1, keepdims=True)+u.max(axis=-1, keepdims=True))/2
+
+def max_scale(u:np.ndarray) -> float:
+    return u.max(axis=-1, keepdims=True)
 
 def max_distance(u:np.ndarray, v:np.ndarray) -> float:
-    return np.abs(u-v).max()
+    return np.abs(u-v).max(axis=-1)
 
 MAX_CONSTANTS = StandardisationConstants(K_m=2, K_d=1)
 '''
@@ -66,4 +81,4 @@ K_m is the largest absolute utility difference assignable by a \infty-standardis
 - min at -1, max at 1 - this is true for all standardised utility functions
 '''
 
-MAX = AlignmentMetric(standardise=max_standardisation, standardised_distance=max_distance, constants=MAX_CONSTANTS, name='MAX')
+MAX = AlignmentMetric(shift=max_shift, scale=max_scale, standardised_distance=max_distance, constants=MAX_CONSTANTS, name='MAX')
