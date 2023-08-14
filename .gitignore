@@ -3,3 +3,6 @@ __pycache__
 venv
 logs
 .ipynb_checkpoints
+.DS_Store
+exp1
+exp2

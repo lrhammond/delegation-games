@@ -25,7 +25,7 @@ def get_stat_nash(dg:DelegationGame, am:AlignmentMetric) -> SimpleStat:
     principals_welfare_regret = princ_welf_regret(principals_game, agents_game)
     return SimpleStat(sum(epics), welfare_regret, principals_welfare_regret)
 
-def get_stat_general(dg:DelegationGame, max_welfare_regret:float, am:AlignmentMetric, min_welfare_regret=0., use_agents=True) -> SimpleStat:
+def get_stat_general(dg:DelegationGame, max_welfare_regret:float, am:AlignmentMetric, rng, min_welfare_regret=0., use_agents=True) -> SimpleStat:
     '''
     Produce a randomly-selected strategy with full support and welfare regret in the given range, if feasible
 
@@ -37,7 +37,7 @@ def get_stat_general(dg:DelegationGame, max_welfare_regret:float, am:AlignmentMe
     principals, agents = dg
     epics = [alignment_distance(am, p, a) for p, a in zip(principals.payoffs, agents.payoffs)]
     target_payoffs = agents if use_agents else principals
-    strat = get_strategy_with_welfare_regret(target_payoffs, target_welfare_regret=np.random.uniform(min_welfare_regret, max_welfare_regret))
+    strat = get_strategy_with_welfare_regret(target_payoffs, target_welfare_regret=rng.uniform(min_welfare_regret, max_welfare_regret))
     welfare_regret = welfare_regret_general(agents.payoffs, strat)
     principals_welfare_regret = welfare_regret_general(principals.payoffs, strat)
     return SimpleStat(sum(epics), welfare_regret, principals_welfare_regret)

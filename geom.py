@@ -1,7 +1,6 @@
 from typing import Tuple
 import numpy as np
 
-
 def standardise(v:np.ndarray) -> np.ndarray:
     v_flat = v.flatten()
     v_centred = v_flat - v_flat.mean()
@@ -41,14 +40,14 @@ def rotate_in_plane(a:np.ndarray, b:np.ndarray, theta:float) -> np.ndarray:
     u1, u2 = orthogonal_project_planar(a, b)
     return u1 * np.cos(theta) + u2 * np.sin(theta)
 
-def random_heading_in_zero_mean_subspace(dim:int) -> np.ndarray:
+def random_heading_in_zero_mean_subspace(dim:int, rng) -> np.ndarray:
     '''
     Generate a random vector direction in the subspace defined by entries summing to zero.
     '''
     # normal variates are spherically symmetric
     # but we also need to satisfy zero mean
     # TODO is this still usefully 'uniform' after the projection? Possible to sample directly from dim-1 subspace?
-    return standardise(np.random.randn(dim))
+    return standardise(rng.normal(dim))
 
 def random_epic_distance_step(v:np.ndarray, d_epic:float) -> np.ndarray:
     '''
