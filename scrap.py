@@ -4,12 +4,12 @@ def normalise(v):
     v_centred = v - v.mean()
     return(v_centred / norm(v_centred))
 
-def new_test(dims,x):
+def new_test(rng, dims,x):
 
     n = len(dims)
     s = np.prod(dims)
 
-    u = np.stack([normalise(rs.normal(size=dims)) for _ in dims])
+    u = np.stack([normalise(rng.normal(size=dims)) for _ in dims])
     u_flat = np.reshape(u, n*s)
 
     def d(v):
@@ -29,7 +29,7 @@ def new_test(dims,x):
 
     x_0 = []
     for _ in range(n):
-        j = rs.randint(0,s)
+        j = rng.randint(0,s)
         x_0 += [1 if i == j else 0 for i in range(s)]
     # x_0 = np.array(x_0)
     # mu = sum([x_0[i * s:(i+1) * s] for i in range(n)]) / n
@@ -48,9 +48,9 @@ def new_test(dims,x):
 
 # CA = 1.00
 
-def test(n, dim):
+def test(rng, n, dim):
 
-    vectors = [normalise(rs.normal(size=dim)) for _ in range(n)]
+    vectors = [normalise(rng.normal(size=dim)) for _ in range(n)]
     mu = sum(vectors)
     vectors = [normalise(v - CA*mu) for v in vectors]
 

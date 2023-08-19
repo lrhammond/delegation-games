@@ -3,18 +3,34 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import itertools
 
+SIZES =[ (3,3),
+         (5,5,4),
+         (6,7,4,6),
+         (7,3,8,5,12),
+         (15,7,3,7,9,5) ]
+
 x_labels = {"ca": "Collective Alignment",
             "ia": "Individual Alignment", 
             "ic": "Individual Capabilities",
             "cc": "Collective Capabilities"}
 
-teal = "#2b8a67"
-orange = "#c96532"
-pink = "#a1427b"
-blue = "#4244a1"
+to_plot = { "ca": "all",
+            "ia": "all", 
+            "ic": "eps_NEs",
+            "cc": "played"}
+
+# teal = "#2b8a67"
+# pink = "#a1427b"
+# orange = "#c96532"
+# blue = "#4244a1"
+
+teal = (47.0/255.0, 95.0/255.0, 82.0/255.0)
+red = (161.0/255.0, 41.0/255.0, 47.0/255.0)
+orange = (224.0/255.0, 105.0/255.0, 63.0/255.0)
+blue = (88.0/255.0, 143.0/255.0, 188.0/255.0)
 
 # Experiment 1
-def re_plot_all(sizes, variables, others, name, bounds=False):
+def re_plot_all_exp_1(sizes, variables, others, name, bounds=False):
 
     exp_1_combinations = list(itertools.product(sizes, variables, others))
     for (dims, variable, v_others) in exp_1_combinations:
@@ -44,11 +60,11 @@ def plot_exp_1(dims, variable, v_others, name, bounds=False):
     normalised_data = normalised_data.round(3)
 
     if bounds:
-        plot_data = pd.melt(normalised_data[['v','w_hat_min','w_hat_avg','w_hat_max','bound_1','bound_2']], ['v'])
-        palette = [teal, orange, teal, pink, blue]
+        plot_data = pd.melt(normalised_data[['v','bound_2','bound_1','w_hat_min','w_hat_max','w_hat_avg']], ['v'])
+        palette = [blue, orange, teal, teal, red]
     else:
-        plot_data = pd.melt(normalised_data[['v','w_hat_min','w_hat_avg','w_hat_max']], ['v'])
-        palette = [teal, orange, teal]
+        plot_data = pd.melt(normalised_data[['v','w_hat_min','w_hat_max', 'w_hat_avg']], ['v'])
+        palette = [teal, teal, red]
 
     plt.figure()
     # plt.subplots_adjust(bottom=0.15)
@@ -59,19 +75,111 @@ def plot_exp_1(dims, variable, v_others, name, bounds=False):
                     palette=palette,
                     legend=False,
                     data=plot_data, 
-                    errorbar=('ci', 90))
+                    errorbar=('ci', 90),
+                    linewidth=2)
     ax.set_xticks([0.0,1.0],["0","1"])
     ax.set_yticks([0.0,1.0],["Min","Max"])
-    # ax.set_xticks([0.0,0.2,0.4,0.6,0.8,1.0])
-    # ax.set_yticks([0.0,0.2,0.4,0.6,0.8,1.0])
+    ax.set_xticks([0.0,0.2,0.4,0.6,0.8,1.0], ["0","","","","","1"])
+    ax.set_yticks([0.0,0.2,0.4,0.6,0.8,1.0], ["Min","","","","","Max"])
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 1)
-    ax.tick_params(labelsize=15)
-    ax.set_xlabel(x_labels[variable],fontsize=15)
-    ax.set_ylabel("Principal Welfare",fontsize=15)
+    ax.tick_params(labelsize=20,length=8, width=2)
+    ax.set_xlabel(x_labels[variable],fontsize=20)
+    ax.set_ylabel("Principal Welfare",fontsize=20)
+    ax.xaxis.labelpad = -10
+    ax.yaxis.labelpad = -25
+    for axis in ['top','bottom','left','right']:
+        ax.spines[axis].set_linewidth(2)
     plt.tight_layout()
 
     pname = "exp1/plots/{}.png".format(code)
     plt.savefig(pname, dpi=300)
 
     return
+
+def plot_exp_2(sizes, dists, name):
+
+    data = {}
+    for dims in sizes:
+        data[dims] = {}
+        for d in dists:
+            code = "{}-{}-{}".format("x".join(map(str,dims)), d, name)
+            fname = "exp2/data/{}.csv".format(code)
+            data[dims][d] = pd.read_csv(fname)
+
+    for k in x_labels:
+
+        loss = k + "_loss"
+        columns = ["samples"] + ["x".join(map(str,dims)) for dims in data]
+        plt.figure()
+        # plt.subplots_adjust(bottom=0.15)
+
+        y_lim = 0.1 if k == "ia" or k == "ca" else 0.6
+        
+        for d in dists:
+
+            if to_plot[k] != d:
+                continue
+
+            combined_data = pd.concat([data[sizes[0]][d]["samples"]] + [data[dims][d][loss] for dims in data], axis=1)
+            combined_data.columns = columns
+            plot_data = pd.melt(combined_data, ["samples"])
+
+            # if d == "all":
+            #     colour = red
+            # elif d == "played":
+            #     colour = orange
+            # elif d == "eps_NEs":
+            #     colour = teal
+            # elif d == "NEs":
+            #     colour = blue
+            palette = [red, orange, blue, teal]
+            # for i in range(len(dims)):
+            #     new_colour = tuple([min(c + (i*0.2), 1.0) for c in colour])
+            #     palette += [new_colour]
+
+            ax = sns.lineplot(x='samples', 
+                            y='value', 
+                            hue='variable',
+                            # palette=sns.color_palette(palette='Set2'),
+                            palette=palette,
+                            legend=False,
+                            data=plot_data, 
+                            errorbar=('ci', 90))
+
+        # ax.set_xticks([0.0,1.0],["0","1"])
+        # ax.set_yticks([0.0,1.0],["Min","Max"])
+        # ax.set_xticks([0.0,0.2,0.4,0.6,0.8,1.0])
+        # ax.set_yticks([0.0,0.2,0.4,0.6,0.8,1.0])
+        ax.set_xlim(10, 1000)
+        ax.set_ylim(0, y_lim)
+        plt.xscale('log')
+        ax.tick_params(labelsize=20,length=8,width=2,which='both')
+        ax.set_xlabel("Samples",fontsize=20)
+        ax.set_ylabel("{}".format(x_labels[k]),fontsize=20)
+        ax.xaxis.labelpad = 5
+        ax.yaxis.labelpad = 10
+        for axis in ['top','bottom','left','right']:
+            ax.spines[axis].set_linewidth(2)
+        plt.tight_layout()
+        pname = "exp2/plots/{}-{}.png".format(k, name)
+        plt.savefig(pname, dpi=300)
+
+    # normalised_data = data.sub(data["w_hat_minus"], axis="index")
+    # normalised_data = normalised_data.div(data["w_hat_plus"] - data["w_hat_minus"], axis="index")
+    # normalised_data["v"] = data["v"]
+    # normalised_data = normalised_data.drop(columns=["Unnamed: 0", "max_regret", "ideal_regret"])
+    # normalised_data = normalised_data.round(3)
+
+    # if bounds:
+    #     plot_data = pd.melt(normalised_data[['v','w_hat_min','w_hat_avg','w_hat_max','bound_1','bound_2']], ['v'])
+    #     palette = [teal, orange, teal, pink, blue]
+    # else:
+    #     plot_data = pd.melt(normalised_data[['v','w_hat_min','w_hat_avg','w_hat_max']], ['v'])
+    #     palette = [teal, orange, teal]
+
+    # return
+
+plot_exp_2(SIZES[:4], ["eps_NEs","all","played","NEs"], "aaai")
+
+# re_plot_all([(3,3)],["ia","ic","ca","cc"],[0.9],"aaai",bounds=True)

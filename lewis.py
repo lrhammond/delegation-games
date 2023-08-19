@@ -7,7 +7,7 @@ import itertools
 import os
 import pickle
 import utils
-from inference import infer_measures
+import inference
 
 # Experiment 1
 
@@ -32,8 +32,8 @@ def exp_1(dims, repetitions, increments, variable, rng, v_others=1.0, measure="E
     values = list(np.linspace(0.00, 1.0, num=increments+1))
     entries = []
     n = len(dims)
-    x ={"ic":np.array([v_others for _ in dims]),
-        "ia":np.array([v_others for _ in dims]),
+    x ={"ic":v_others*np.ones(n),
+        "ia":v_others*np.ones(n),
         "cc":v_others,
         "ca":v_others}
 
@@ -47,6 +47,8 @@ def exp_1(dims, repetitions, increments, variable, rng, v_others=1.0, measure="E
                 x[variable] = v * np.ones(n)
             else:
                 x[variable] = v
+
+            
 
             eps_tol = np.zeros(n)
             NEs = []
@@ -153,14 +155,14 @@ def re_run_exp_1(dims, variable, v_others, seed, repetitions=10, increments=20, 
     data = exp_1(dims, repetitions, increments, variable, rng, v_others=v_others)
     data.to_csv(fname)
 
-def exp_2(dims, repetitions, rng, samples=1000, increments=100, measure="EPIC", force_m=False, force_c=False, name=""):
+def exp_2(dims, repetitions, rng, dists=["eps_NEs","all","played","NEs"], samples=1000, increments=100, measure="EPIC", force_m=False, force_c=False, name=""):
 
     # samples = len(game_sizes) * repetitions * increments
     # i = 0
     if measure == "EPIC":
         metric = measures.epic(rng)
     
-    entries = []
+    entries = dict([(d,[]) for d in dists])
     n = len(dims)
 
     for r in range(repetitions):
@@ -170,29 +172,42 @@ def exp_2(dims, repetitions, rng, samples=1000, increments=100, measure="EPIC", 
 
         if not os.path.exists(gname):
 
-            x ={"ic":rng.uniform(n),
-                "ia":rng.uniform(n),
-                "cc":rng.uniform(1),
-                "ca":rng.uniform(1)}
+            x ={"ic":rng.uniform(size=n),
+                "ia":rng.uniform(size=n),
+                "cc":rng.uniform(),
+                "ca":rng.uniform()}
+
+            strategies = {"NEs":[], "eps_NEs":[], "played":[]}
 
             eps_tol = np.zeros(n)
-            NEs = []
             attempts = 0
             m_range = (1.0,1.0) if force_m else (0.5,1.5)
             c_range = (0.0,0.0) if force_c else (-1.0,1.0)
 
-            while NEs == []:
-                G = generate_delegation_game(dims, x["ia"], x["ca"], metric, rng, m_range=m_range,c_range=c_range)
+            while strategies["NEs"] == []:
+                G = generate_delegation_game(dims, x["ia"], x["ca"], metric, rng, agents_first=True,m_range=m_range,c_range=c_range,positive=True)
                 attempts += 1
-                NEs = G.get_pure_eps_NEs(eps=eps_tol)
+                strategies["NEs"] = G.get_pure_eps_NEs(eps=eps_tol)
                 if attempts == 10:
                     attempts = 0
                     eps_tol += (0.01 * np.ones(n))
                     if eps_tol[0] > 1 - x["ic"][0]:
                         x["ic"] = np.ones(n) - eps_tol
+
+            if np.allclose(x["ic"],np.ones(n)-eps_tol): 
+                strategies["eps_NEs"] = strategies["NEs"]
+            elif np.allclose(x["ic"],np.zeros(n)):
+                strategies["eps_NEs"] = G.S
+            else:
+                strategies["eps_NEs"] = G.get_pure_eps_NEs(eps=np.ones(n)-x["ic"])
+        
+            strategies["played"] = G.get_played_strategies(strategies["NEs"], strategies["eps_NEs"], x["cc"])
+            strategies["all"] = G.S
+
+            # G, NEs, eps_NEs, played, x = get_new_game()
         
             with open(gname, 'wb') as handle:
-                pickle.dump({"measures": x, "game": G}, handle)
+                pickle.dump({"measures": x, "game": G, "strategies": strategies}, handle)
 
         else:
             
@@ -200,73 +215,92 @@ def exp_2(dims, repetitions, rng, samples=1000, increments=100, measure="EPIC", 
                 saved = pickle.load(handle)
             G = saved["game"]
             x = saved["measures"]
-
-        if np.allclose(x["ic"],np.ones(n)-eps_tol): 
-            eps_NEs = NEs
-        elif np.allclose(x["ic"],np.zeros(n)):
-            eps_NEs = G.S
-        else:
-            eps_NEs = G.get_pure_eps_NEs(eps=np.ones(n)-x["ic"])
-        
-        played = G.get_played_strategies(NEs, eps_NEs, x["cc"])
+            strategies = saved["strategies"]
 
         sname = "exp2/random_states/{}.pickle".format(code)
         rs = rng.get_state()
         with open(sname, 'wb') as handle:
             pickle.dump(rs, handle)
-        rng.set_state(rs)
-        
-        u = [{} for _ in dims]
-        u_hat = [{} for _ in dims]
-        w = {}
-        w_hat = {}
-        eps = [0 for _ in dims]
-        delta = 1
-        step = np.floor_divide(samples, increments)
 
-        for i in range(samples):
+        for d in dists:
 
-            s = rng.choice(played)
-            w[s] = G.w(s)
-            w["max"] = max(w.get("max", -10e20), w[s])
-            w_hat[s] = G.w_hat(s)
+            rng.set_state(rs)
 
-            if "eps" in w and "zero" in w:
-                if w["max"] != w["zero"]:
-                    delta = min(delta, (w[s] - w["eps"])/(w["max"] - w["zero"]))
-                    # w["limit"] = w["eps"] + delta*(w["max"] - w["eps"])
-                w["limit"] = min(w.get("limit", 10e20), w["eps"] + (delta*(w["max"] - w["zero"])))
-            else:
-                w["limit"] = w["max"]
+            u = [{} for _ in dims]
+            u_hat = [{} for _ in dims]
+            br = [{} for _ in dims]
+            w = {}
+            m = len(strategies[d])
+            step = np.floor_divide(samples, increments)
 
-            for i in range(n):
-
-                k = tuple(s[:i] + s[i+1:])
+            for j in range(samples):
                 
-                u[i][k][s[i]] = G.u[i](s)
-                u[i][k]["u_min"] = min(u[i][k].get("u_min",10e20), u[i][k][s[i]])
-                u[i][k]["u_max"] = max(u[i][k].get("u_max",-10e20), u[i][k][s[i]])
-                u[i][k]["w_max"] = max(u[i][k].get("w", -10e20), w[s])
-                
-                if w[s] < u[i][k]["w_max"] and u[i][k]["w_max"] <= w["limit"]:
-                    eps[i] = max(eps[i], 1 - ((u[i][k][s[i]] - u[i][k]["u_min"])/(u[i][k]["u_max"] - u[i][k]["u_min"])))
+                index = rng.randint(low=0, high=m)
+                s = strategies[d][index]
+                w[s] = G.w(s)
+                w["max"] = max(w.get("max", -10e20), w[s])
+                w["min"] = min(w.get("min", 10e20), w[s])
 
-            if i % step == 0 or i == samples-1:
+                for i in range(n):
 
-                ia, ca, ic, cc = infer_measures(u, u_hat, w, eps, metric, n)
+                    u[i][s] = G.u[i](s)
+                    u_hat[i][s] = G.u_hat[i](s)
 
-                ia_loss = np.mean(np.abs(x["ia"] - ia))
-                ic_loss = np.mean(np.abs(x["ic"] - ic))
-                ca_loss = abs(x["ca"] - ca)
-                cc_loss = abs(x["cc"] - cc)
+                    k = tuple(s[:i] + s[i+1:])
+                    if k not in br[i]:
+                        br[i][k] = {"max": u[i][s], "min": u[i][s]}
+                    else:
+                        br[i][k]["min"] = min(br[i][k]["min"], u[i][s])
+                        br[i][k]["max"] = max(br[i][k]["max"], u[i][s])
+                        # if u[i][s] >= br[i][k].get("max",-10e20):
+                        #     br[i][k]["max"] = (s[i], u[i][s])
+                        # if u[i][s] <= br[i][k].get("min",10e20):
+                        #     br[i][k]["min"] = (s[i], u[i][s])
 
-            entries.append((i,ia_loss,ic_loss,ca_loss,cc_loss))
+                if (j % step == 0 and j > 0) or j == samples-1:
+                    
+                    ia, ca = inference.alignment_estimate(u, u_hat, metric)
+                    ic, cc = inference.capabilities_estimate(w, br, d)
 
-    return pd.DataFrame(data=entries,
-                        columns=["samples",
-                                "ia_loss",
-                                "ic_loss",
-                                "ca_loss",
-                                "cc_loss",])
+                    ia_loss = np.mean(np.abs(x["ia"] - ia))
+                    ic_loss = np.mean(np.abs(x["ic"] - ic))
+                    ca_loss = abs(x["ca"] - ca)
+                    cc_loss = abs(x["cc"] - cc)
+
+                    entries[d].append((j,ia_loss,ic_loss,ca_loss,cc_loss))
+
+    # index_combinations = list(itertools.product(["ia", "ic", "ca", "cc"],dists))
+    # index = pd.MultiIndex.from_tuples(index_combinations, names=["var","dist"])
+
+    # df = pd.DataFrame(np.random.randn(3, 8), columns=index
+
+    return dict([(d,pd.DataFrame(data=entries[d],
+                                columns=["samples",
+                                        "ia_loss",
+                                        "ic_loss",
+                                        "ca_loss",
+                                        "cc_loss"])) for d in dists])
+
+def run_exp_2(sizes=SIZES[:2], dists=["eps_NEs","all","played","NEs"], repetitions=100, samples=1000, increments=100, seed=SEED, progress_bar=False,force_m=False, force_c=False, name=""):
+
+    rng = np.random.RandomState(seed)
+
+    exp_2_combinations = tqdm(sizes, total=len(sizes)) if progress_bar else sizes
+
+    for dims in exp_2_combinations:
+
+        # if not os.path.exists(fname):
+
+        data = exp_2(dims, repetitions, rng, dists=dists, samples=samples, increments=increments, measure="EPIC", force_m=force_m, force_c=force_c, name=name)
+
+        for d in dists:
+
+            code = "{}-{}-{}".format("x".join(map(str,dims)), d, name)
+            fname = "exp2/data/{}.csv".format(code)
+            data[d].to_csv(fname)
+
+    utils.plot_exp_2(sizes, dists, name)
+
+run_exp_2(sizes=SIZES[:4], repetitions=25, samples=1000, increments=100, force_m=False, force_c=False, name="aaai")
 
 # run_exp_1(variables=["ca"],sizes=[(3,3)],others=[0.9],increments=25,repetitions=25,name="aaai")

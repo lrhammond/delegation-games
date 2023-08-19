@@ -116,14 +116,12 @@ class DelegationGame:
         #     print("Principal {}:".format(i))
         #     print(self.u_hat[i].m * self.u_hat[i].nu + self.u_hat[i].c)
     
-def generate_delegation_game(dims, ia, ca, metric, rng, agents_first=False, m_range=(0.5,1.5), c_range=(-1.0,1.0)):
+def generate_delegation_game(dims, ia, ca, metric, rng, agents_first=False, m_range=(0.5,1.5), c_range=(-1.0,1.0), positive=False):
 
     size = np.prod(dims)
     n = len(dims)
 
     adjusted_u_nu = None
-
-    k =  0
 
     while adjusted_u_nu == None:
 
@@ -131,7 +129,6 @@ def generate_delegation_game(dims, ia, ca, metric, rng, agents_first=False, m_ra
         u_nu = [metric.sample(size) for _ in dims]
         u_m = [rng.uniform(*m_range) for _ in dims]
         adjusted_u_nu = metric.adjust_ca(u_nu, u_m, ca, metric)
-        k += 1
     
     u_nu = adjusted_u_nu
     u_c = [rng.uniform(*c_range) for _ in dims]
@@ -144,6 +141,11 @@ def generate_delegation_game(dims, ia, ca, metric, rng, agents_first=False, m_ra
 
     u_hat_m = [rng.uniform(*m_range) for _ in dims]
     u_hat_c = [rng.uniform(*c_range) for _ in dims]
+
+    if positive:
+        for i in range(n):
+            u_c[i] = - u_m[i] * min(u_nu[i])
+            u_hat_c[i] = - u_hat_m[i] * min(u_hat_nu[i])
 
     u = [UtilityFunction(u_nu[i].reshape(dims), u_m[i], u_c[i]) for i in range(n)]
     u_hat = [UtilityFunction(u_hat_nu[i].reshape(dims), u_hat_m[i], u_hat_c[i]) for i in range(n)]
