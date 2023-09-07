@@ -22,7 +22,7 @@ VARIABLES = ["ia", "ic", "ca", "cc"]
 OTHERS = [0.0, 0.25, 0.5, 0.75, 1.0]
 SEED = 1282
 
-def exp_1(dims, repetitions, increments, variable, rng, v_others=1.0, measure="EPIC", force_m=False,force_c=False):
+def exp_1(dims, repetitions, increments, variable, rng, v_others=1.0, measure="EPIC", force_m=False,force_c=False, name=""):
 
     # samples = len(game_sizes) * repetitions * increments
     # i = 0
@@ -41,38 +41,57 @@ def exp_1(dims, repetitions, increments, variable, rng, v_others=1.0, measure="E
 
         # nwr = []
     
-        for _ in range(repetitions):
+        for r in range(repetitions):
 
             if variable == "ic" or variable == "ia":
                 x[variable] = v * np.ones(n)
             else:
                 x[variable] = v
 
-            
+            code = "{}-{}-{}-{}-{}".format(variable, "x".join(map(str,dims)), v_others, r, name)
+            gname = "exp1/games/{}.pickle".format(code)
 
-            eps_tol = np.zeros(n)
-            NEs = []
-            attempts = 0
-            m_range = (1.0,1.0) if force_m else (0.5,1.5)
-            c_range = (0.0,0.0) if force_c else (-1.0,1.0)
-            while NEs == []:
-                G = generate_delegation_game(dims, x["ia"], x["ca"], metric, rng, m_range=m_range,c_range=c_range)
-                attempts += 1
-                NEs = G.get_pure_eps_NEs(eps=eps_tol)
-                if attempts == 10:
-                    attempts = 0
-                    eps_tol += (0.01 * np.ones(n))
-                    if eps_tol[0] > 1 - x["ic"][0]:
-                        x["ic"] = np.ones(n) - eps_tol
+            # if not os.path.exists(gname):
+            if True:
 
-            if np.allclose(x["ic"],np.ones(n)-eps_tol): 
-                eps_NEs = NEs
-            elif np.allclose(x["ic"],np.zeros(n)):
-                eps_NEs = G.S
+                eps_tol = np.zeros(n)
+                NEs = []
+                attempts = 0
+                m_range = (1.0,1.0) if force_m else (0.5,1.5)
+                c_range = (0.0,0.0) if force_c else (-1.0,1.0)
+                while NEs == []:
+                    G = generate_delegation_game(dims, x["ia"], x["ca"], metric, rng, m_range=m_range,c_range=c_range)
+                    attempts += 1
+                    NEs = G.get_pure_eps_NEs(eps=eps_tol)
+                    if attempts == 5:
+                        attempts = 0
+                        eps_tol += (0.01 * np.ones(n))
+                        if eps_tol[0] > 1 - x["ic"][0]:
+                            x["ic"] = np.ones(n) - eps_tol
+
+                if np.allclose(x["ic"],np.ones(n)-eps_tol): 
+                    eps_NEs = NEs
+                elif np.allclose(x["ic"],np.zeros(n)):
+                    eps_NEs = G.S
+                else:
+                    eps_NEs = G.get_pure_eps_NEs(eps=np.ones(n)-x["ic"])
+                
+                played = G.get_played_strategies(NEs, eps_NEs, x["cc"])
+
+                strategies = {"NEs":NEs, "eps_NEs":eps_NEs, "played":played}
+
+                with open(gname, 'wb') as handle:
+                    pickle.dump({"measures": x, "game": G, "strategies": strategies}, handle)
+
             else:
-                eps_NEs = G.get_pure_eps_NEs(eps=np.ones(n)-x["ic"])
             
-            played = G.get_played_strategies(NEs, eps_NEs, x["cc"])
+                with open(gname, 'rb') as handle:
+                    saved = pickle.load(handle)
+                    G = saved["game"]
+                    x = saved["measures"]
+                    played = saved["strategies"]["played"]
+                    NEs = saved["strategies"]["NEs"]
+                    eps_NEs = saved["strategies"]["eps_NEs"]
 
             w_hat = [G.w_hat(s) for s in G.S]
             w_hat_max = max(w_hat)
@@ -131,17 +150,18 @@ def run_exp_1(sizes=SIZES[:2], variables=VARIABLES, others=OTHERS, repetitions=1
         fname = "exp1/data/{}.csv".format(code)
 
         # if not os.path.exists(fname):
+        if True:
 
-        sname = "exp1/random_states/{}.pickle".format(code)
-        rs = rng.get_state()
-        with open(sname, 'wb') as handle:
-            pickle.dump(rs, handle)
-        rng.set_state(rs)
+            sname = "exp1/random_states/{}.pickle".format(code)
+            rs = rng.get_state()
+            with open(sname, 'wb') as handle:
+                pickle.dump(rs, handle)
+            rng.set_state(rs)
 
-        data = exp_1(dims, repetitions, increments, variable, rng, v_others=v_others, force_m=force_m, force_c=force_c)
-        data.to_csv(fname)
+            data = exp_1(dims, repetitions, increments, variable, rng, v_others=v_others, force_m=force_m, force_c=force_c, name=name)
+            data.to_csv(fname)
 
-        utils.plot_exp_1(dims, variable, v_others, name, bounds=True)
+            utils.plot_exp_1(dims, variable, v_others, name, bounds=True)
 
 def re_run_exp_1(dims, variable, v_others, seed, repetitions=10, increments=20, name=""):
 
@@ -301,6 +321,6 @@ def run_exp_2(sizes=SIZES[:2], dists=["eps_NEs","all","played","NEs"], repetitio
 
     utils.plot_exp_2(sizes, dists, name)
 
-run_exp_2(sizes=SIZES[:4], repetitions=25, samples=1000, increments=100, force_m=False, force_c=False, name="aaai")
+# run_exp_2(sizes=SIZES[:4], repetitions=25, samples=1000, increments=100, force_m=False, force_c=False, name="aaai")
 
-# run_exp_1(variables=["ca"],sizes=[(3,3)],others=[0.9],increments=25,repetitions=25,name="aaai")
+run_exp_1(variables=VARIABLES,sizes=SIZES[2:4],others=OTHERS,increments=25,repetitions=10,name="aaai-appendix",progress_bar=True)

@@ -73,3 +73,31 @@ def test(rng, n, dim):
         j += 1
     
     return
+
+SIZES =[ (3,3),
+         (5,5,4),
+         (6,7,4,6),
+         (7,3,8,5,12),
+         (15,7,3,7,9,5) ]
+REPETITIONS = 10
+INCREMENTS = 20
+VARIABLES = ["ia", "ic", "ca", "cc"]
+OTHERS = [0.0, 0.25, 0.5, 0.75, 1.0]
+
+
+def print_latex_figure(dims, variables, others, name):
+
+    print("\\begin{figure}")
+    print("\t\centering")
+    for o in others:
+        for v in variables:
+            code = "{}-{}-{}-{}".format(v, "x".join(map(str,dims)), o, name)
+            print('\t\\begin{subfigure}{0.24\\textwidth}')
+            print("\t\t\centering")
+            print("\t\t\includegraphics[width=0.95\\textwidth]{figures/inference/" + code + ".png}")
+            print("\t\t% \caption\{\}")
+            print("\t\end{subfigure}")
+        print("\n")
+    print("\end{figure}")
+
+print_latex_figure((6,7,4,6), VARIABLES, OTHERS, "aaai-appendix")
