@@ -3,12 +3,6 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import itertools
 
-SIZES =[ (3,3),
-         (5,5,4),
-         (6,7,4,6),
-         (7,3,8,5,12),
-         (15,7,3,7,9,5) ]
-
 x_labels = {"ca": "Collective Alignment",
             "ia": "Individual Alignment", 
             "ic": "Individual Capabilities",
@@ -179,7 +173,18 @@ def plot_exp_2(sizes, dists, name):
     #     palette = [teal, orange, teal]
 
     # return
+        
+def print_latex_figure(dims, variables, others, name):
 
-plot_exp_2(SIZES[:4], ["eps_NEs","all","played","NEs"], "aaai")
-
-# re_plot_all([(3,3)],["ia","ic","ca","cc"],[0.9],"aaai",bounds=True)
+    print("\\begin{figure}")
+    print("\t\centering")
+    for o in others:
+        for v in variables:
+            code = "{}-{}-{}-{}".format(v, "x".join(map(str,dims)), o, name)
+            print('\t\\begin{subfigure}{0.24\\textwidth}')
+            print("\t\t\centering")
+            print("\t\t\includegraphics[width=0.95\\textwidth]{figures/inference/" + code + ".png}")
+            print("\t\t% \caption\{\}")
+            print("\t\end{subfigure}")
+        print("\n")
+    print("\end{figure}")

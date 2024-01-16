@@ -1,12 +1,8 @@
 from nashpy import Game
 import numpy as np
 from typing import List, NamedTuple
-from utils import rs
-
-import games
 import geom
-from alignment import AlignmentMetric, EPIC
-from statistical import sample_simplex
+from alignment import EPIC
 
 
 class FlatGame(NamedTuple):
@@ -55,7 +51,7 @@ def generate_delegation_games_with_alignment_bounds(rng, n_players=2, n_outcomes
         # TODO simplex sample can produce impossibly-large misalignment for larger shares
         # geom currently just truncates to max possible misalignment
         # could instead mix the simplex sample with a uniform share of misalignment depending on how large total is
-        epics = total_misalignment * sample_simplex(n_players)
+        epics = total_misalignment * geom.sample_simplex(n_players)
         principals = FlatGame([payoff() for _ in range(n_players)])
         agents = FlatGame(
             [m[i]*am.standardise(geom.random_epic_distance_step(principals.payoffs[i], epics[i])) for i in range(n_players)]

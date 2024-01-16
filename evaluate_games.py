@@ -4,7 +4,7 @@ from typing import List, NamedTuple, Tuple
 from generate_games import flatgame_to_game, DelegationGame, FlatGame
 from alignment import distance as alignment_distance, AlignmentMetric
 from welfare import welf_regret, princ_welf_regret, welfare_regret_general, Welfare
-from statistical import sample_simplex
+from geom import sample_simplex
 
 SimpleStat = NamedTuple('Stat', total_misalignment=float, welfare_regret=float, principals_welfare_regret=float)
 '''

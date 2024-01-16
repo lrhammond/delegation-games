@@ -9,8 +9,7 @@ import pickle
 import utils
 import inference
 
-# Experiment 1
-
+# Default sets of values for experiments 1 and 2
 SIZES =[ (3,3),
          (5,5,4),
          (6,7,4,6),
@@ -21,6 +20,8 @@ INCREMENTS = 20
 VARIABLES = ["ia", "ic", "ca", "cc"]
 OTHERS = [0.0, 0.25, 0.5, 0.75, 1.0]
 SEED = 1282
+
+# Experiment 1
 
 def exp_1(dims, repetitions, increments, variable, rng, v_others=1.0, measure="EPIC", force_m=False,force_c=False, name=""):
 
@@ -43,6 +44,7 @@ def exp_1(dims, repetitions, increments, variable, rng, v_others=1.0, measure="E
     
         for r in range(repetitions):
 
+            # IC and IA are vectors (one value for each player)
             if variable == "ic" or variable == "ia":
                 x[variable] = v * np.ones(n)
             else:
@@ -51,35 +53,43 @@ def exp_1(dims, repetitions, increments, variable, rng, v_others=1.0, measure="E
             code = "{}-{}-{}-{}-{}".format(variable, "x".join(map(str,dims)), v_others, r, name)
             gname = "exp1/games/{}.pickle".format(code)
 
-            # if not os.path.exists(gname):
-            if True:
+            # Avoids creating a new game every time
+            if not os.path.exists(gname):
+            # if True:
 
+                # Generates a game with the desired characteristics where the set of pure approximate NEs is non-empty (taking into account some additional tolerance) 
                 eps_tol = np.zeros(n)
                 NEs = []
                 attempts = 0
+                # When generating utility functions, we can force their norm and how off centre they are to lie within particular ranges
                 m_range = (1.0,1.0) if force_m else (0.5,1.5)
                 c_range = (0.0,0.0) if force_c else (-1.0,1.0)
                 while NEs == []:
                     G = generate_delegation_game(dims, x["ia"], x["ca"], metric, rng, m_range=m_range,c_range=c_range)
                     attempts += 1
                     NEs = G.get_pure_eps_NEs(eps=eps_tol)
+                    # If we generate 5 random games and none of them have pure approximate NEs, increase the tolerance slightly for what counts as a pure approximate NE
                     if attempts == 5:
                         attempts = 0
                         eps_tol += (0.01 * np.ones(n))
                         if eps_tol[0] > 1 - x["ic"][0]:
                             x["ic"] = np.ones(n) - eps_tol
 
+                # If IC is roughly 1, then the eps_NEs are the NEs
                 if np.allclose(x["ic"],np.ones(n)-eps_tol): 
                     eps_NEs = NEs
+                # If IC is roughly 0, then the eps_NEs are are all strategies
                 elif np.allclose(x["ic"],np.zeros(n)):
                     eps_NEs = G.S
                 else:
                     eps_NEs = G.get_pure_eps_NEs(eps=np.ones(n)-x["ic"])
                 
+                # Given the degree of cooperative capabilities, only some strategies will actually be played
                 played = G.get_played_strategies(NEs, eps_NEs, x["cc"])
 
                 strategies = {"NEs":NEs, "eps_NEs":eps_NEs, "played":played}
 
+                # Save all this info for later
                 with open(gname, 'wb') as handle:
                     pickle.dump({"measures": x, "game": G, "strategies": strategies}, handle)
 
@@ -93,17 +103,21 @@ def exp_1(dims, repetitions, increments, variable, rng, v_others=1.0, measure="E
                     NEs = saved["strategies"]["NEs"]
                     eps_NEs = saved["strategies"]["eps_NEs"]
 
+            # Compute the various welfare metrics (see paper for definitions)
             w_hat = [G.w_hat(s) for s in G.S]
             w_hat_max = max(w_hat)
             w_hat_min = min(w_hat)
             w_hat_minus, w_hat_plus = G.w_hat_bounds()
             w_hat_avg = sum([G.w_hat(s) for s in played]) / len(played)
             
+            # As above
             u_avg = [sum([G.u[i](s) for s in played])/len(played) for i in range(G.n)]
             s_hat_star = G.S[w_hat.index(max(w_hat))]
 
+            # As above
             max_regret, ideal_regret = measures.get_bounds(G, metric, x["cc"], NEs, eps_NEs, s_hat_star, u_avg)
 
+            # The game's precise metrics may differ very slightly from the chosen metrics, so we calculate them here to be sure
             if variable == "ia":
                 v_actual = np.mean(G.ia(metric))
             elif variable == "ca":
@@ -138,6 +152,7 @@ def exp_1(dims, repetitions, increments, variable, rng, v_others=1.0, measure="E
 
 def run_exp_1(sizes=SIZES[:2], variables=VARIABLES, others=OTHERS, repetitions=10, increments=20, seed=SEED, progress_bar=False,force_m=False, force_c=False, name=""):
 
+    # For each run we initialise a random number generator using the seed, and then continually make use of this and save its state for each trial, to enable replicability
     rng = np.random.RandomState(seed)
 
     exp_1_combinations = list(itertools.product(sizes, variables, others))
@@ -149,8 +164,9 @@ def run_exp_1(sizes=SIZES[:2], variables=VARIABLES, others=OTHERS, repetitions=1
         code = "{}-{}-{}-{}".format(variable, "x".join(map(str,dims)), v_others, name)
         fname = "exp1/data/{}.csv".format(code)
 
-        # if not os.path.exists(fname):
-        if True:
+        # If we've already generated the data and plotted it, skip this step
+        if not os.path.exists(fname):
+        # if True:
 
             sname = "exp1/random_states/{}.pickle".format(code)
             rs = rng.get_state()
@@ -162,18 +178,6 @@ def run_exp_1(sizes=SIZES[:2], variables=VARIABLES, others=OTHERS, repetitions=1
             data.to_csv(fname)
 
             utils.plot_exp_1(dims, variable, v_others, name, bounds=True)
-
-def re_run_exp_1(dims, variable, v_others, seed, repetitions=10, increments=20, name=""):
-
-    rng = np.random.RandomState(seed)
-    code = "{}-{}-{}-{}".format(variable, "x".join(map(str,dims)), v_others, name)
-    fname = "exp1/data/{}.csv".format(code)
-    sname = "exp1/random_states/{}.pickle".format(code)
-    with open(sname, 'rb') as handle:
-        rs = pickle.load(handle)
-    rng.set_state(rs)
-    data = exp_1(dims, repetitions, increments, variable, rng, v_others=v_others)
-    data.to_csv(fname)
 
 def exp_2(dims, repetitions, rng, dists=["eps_NEs","all","played","NEs"], samples=1000, increments=100, measure="EPIC", force_m=False, force_c=False, name=""):
 
@@ -190,6 +194,7 @@ def exp_2(dims, repetitions, rng, dists=["eps_NEs","all","played","NEs"], sample
         code = "{}-{}-{}".format("x".join(map(str,dims)), r, name)
         gname = "exp2/games/{}.pickle".format(code)
 
+        # If we've already generated the game, skip this step; see exp_1 for explanation of the game generation process
         if not os.path.exists(gname):
 
             x ={"ic":rng.uniform(size=n),
@@ -242,10 +247,12 @@ def exp_2(dims, repetitions, rng, dists=["eps_NEs","all","played","NEs"], sample
         with open(sname, 'wb') as handle:
             pickle.dump(rs, handle)
 
+        # We can measure the various metrics over different distributions of strategies
         for d in dists:
 
             rng.set_state(rs)
 
+            # Set up dicts for key quantities (see paper for definitions)
             u = [{} for _ in dims]
             u_hat = [{} for _ in dims]
             br = [{} for _ in dims]
@@ -255,12 +262,14 @@ def exp_2(dims, repetitions, rng, dists=["eps_NEs","all","played","NEs"], sample
 
             for j in range(samples):
                 
+                # Sample a strategy uniformly from the support of the given distribution (i.e. the set of strategies under consideration)
                 index = rng.randint(low=0, high=m)
                 s = strategies[d][index]
                 w[s] = G.w(s)
                 w["max"] = max(w.get("max", -10e20), w[s])
                 w["min"] = min(w.get("min", 10e20), w[s])
 
+                # Figure out what the (pure) best response sets are for each player
                 for i in range(n):
 
                     u[i][s] = G.u[i](s)
@@ -279,9 +288,11 @@ def exp_2(dims, repetitions, rng, dists=["eps_NEs","all","played","NEs"], sample
 
                 if (j % step == 0 and j > 0) or j == samples-1:
                     
+                    # Estimate the four measures using the inference procedures defined in the paper
                     ia, ca = inference.alignment_estimate(u, u_hat, metric)
                     ic, cc = inference.capabilities_estimate(w, br, d)
 
+                    # Calculate the losses based on the true measures
                     ia_loss = np.mean(np.abs(x["ia"] - ia))
                     ic_loss = np.mean(np.abs(x["ic"] - ic))
                     ca_loss = abs(x["ca"] - ca)
@@ -308,19 +319,29 @@ def run_exp_2(sizes=SIZES[:2], dists=["eps_NEs","all","played","NEs"], repetitio
     exp_2_combinations = tqdm(sizes, total=len(sizes)) if progress_bar else sizes
 
     for dims in exp_2_combinations:
+        
+        # If we've already generated data for a particular size of game
+        if not os.path.exists(fname):
 
-        # if not os.path.exists(fname):
+            data = exp_2(dims, repetitions, rng, dists=dists, samples=samples, increments=increments, measure="EPIC", force_m=force_m, force_c=force_c, name=name)
 
-        data = exp_2(dims, repetitions, rng, dists=dists, samples=samples, increments=increments, measure="EPIC", force_m=force_m, force_c=force_c, name=name)
+            for d in dists:
 
-        for d in dists:
+                code = "{}-{}-{}".format("x".join(map(str,dims)), d, name)
+                fname = "exp2/data/{}.csv".format(code)
+                data[d].to_csv(fname)
 
-            code = "{}-{}-{}".format("x".join(map(str,dims)), d, name)
-            fname = "exp2/data/{}.csv".format(code)
-            data[d].to_csv(fname)
+            utils.plot_exp_2(sizes, dists, name)
 
-    utils.plot_exp_2(sizes, dists, name)
 
-# run_exp_2(sizes=SIZES[:4], repetitions=25, samples=1000, increments=100, force_m=False, force_c=False, name="aaai")
 
-run_exp_1(variables=VARIABLES,sizes=SIZES[2:4],others=OTHERS,increments=25,repetitions=10,name="aaai-appendix",progress_bar=True)
+# Code below used to produce plots for the paper
+
+# Exp 1 Body
+# run_exp_1(variables=VARIABLES,sizes=[SIZES[0]],others=[0.9],increments=25,repetitions=25,name="body",progress_bar=True)
+
+# Exp 1 Appendix
+# run_exp_1(variables=VARIABLES,sizes=SIZES[1:4],others=OTHERS,increments=25,repetitions=10,name="appendix",progress_bar=True)
+
+# Exp 2 Body
+# run_exp_2(sizes=SIZES[:4], repetitions=25, samples=1000, increments=100, force_m=False, force_c=False, name="body")

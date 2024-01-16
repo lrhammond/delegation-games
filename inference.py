@@ -1,6 +1,7 @@
 import numpy as np
 import measures
 
+# Estimate IA and CA given a set of payoff samples (see paper for more details)
 def alignment_estimate(u, u_hat, metric):
     
     n = len(u)
@@ -16,6 +17,7 @@ def alignment_estimate(u, u_hat, metric):
 
     return ia, ca
 
+# Estimate IC and CC given samples from set d (e.g. approximate pure NEs), the pure best response sets for the players, and recorded min and max welfares
 def capabilities_estimate(w, br, d):
 
     n = len(br)
@@ -44,24 +46,3 @@ def capabilities_estimate(w, br, d):
         cc = 1.0
 
     return ic, cc
-            
-def get_approx_NEs(S, u, eps, tol=1e-10):
-
-    n = len(u)
-    for s in S:
-        NE = True
-        for i in range(n):
-            k = tuple(s[:i] + s[i+1:])
-            u_min = min(u[i][k])
-            u_max = max(u[i][k])
-            if u[i][k][s[i]] + tol < u_min + (1 - eps[i]) * (u_max - u_min):
-                break
-            if u[i][k][s[i]] + tol < u_max:
-                NE = False
-            if i == n - 1:
-                eps_NEs += [s]
-                if NE:
-                    NEs += [s]
-    
-    return NEs, eps_NEs
-    
