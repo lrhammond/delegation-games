@@ -1,8 +1,8 @@
-import nashpy as nash
 import numpy as np
 import itertools
 import measures
 
+# The particular welfare function we use in the paper and experiments
 def average_utilitarian(u):
 
     return sum(u) / len(u)
@@ -31,10 +31,12 @@ class DelegationGame:
         self.size = np.prod(self.dims)
         self.n = len(self.dims)
 
+    # Calculate IA from game
     def ia(self, metric):
 
         return np.array([measures.individual_alignment(self.u[i].nu, self.u_hat[i].nu, metric) for i in range(self.n)])
 
+    # Calculate CA from game
     def ca(self, metric, agents=False):
         
         utilities = self.u if agents else self.u_hat
@@ -43,6 +45,7 @@ class DelegationGame:
         
         return measures.collective_alignment(u_nu, u_m, metric)
     
+    # Compute the pure approximate NEs of the game (with some additional tolerance)
     def get_pure_eps_NEs(self, eps=[], tol=1e-10):
         
         if len(eps) == 0:
@@ -68,6 +71,7 @@ class DelegationGame:
         
         return welfare([u_hat_i(s) for u_hat_i in self.u_hat])
     
+    # See the paper for definition of these terms
     def w_bounds(self, welfare=average_utilitarian):
 
         w_minus = welfare([self.u[i].m * np.min(self.u[i].nu) + self.u[i].c for i in range(self.n)])
@@ -75,6 +79,7 @@ class DelegationGame:
 
         return w_minus, w_plus
     
+    # As above
     def w_hat_bounds(self, welfare=average_utilitarian):
 
         w_hat_minus = welfare([self.u_hat[i].m * np.min(self.u_hat[i].nu) + self.u_hat[i].c for i in range(self.n)])
@@ -82,6 +87,7 @@ class DelegationGame:
 
         return w_hat_minus, w_hat_plus
     
+    # Given a certain level of cooperative capabilities, only some strategies will be played; we compute them here (see paper for details)
     def get_played_strategies(self, NEs, eps_NEs, cc, tol=1e-6):
         
         w_0 = min([self.w(s) for s in NEs])
@@ -116,6 +122,7 @@ class DelegationGame:
         #     print("Principal {}:".format(i))
         #     print(self.u_hat[i].m * self.u_hat[i].nu + self.u_hat[i].c)
     
+# Randomly generate a delegation game given chosen values for IA and CA and the dimensions of the game
 def generate_delegation_game(dims, ia, ca, metric, rng, agents_first=False, m_range=(0.5,1.5), c_range=(-1.0,1.0), positive=False):
 
     size = np.prod(dims)
@@ -142,6 +149,7 @@ def generate_delegation_game(dims, ia, ca, metric, rng, agents_first=False, m_ra
     u_hat_m = [rng.uniform(*m_range) for _ in dims]
     u_hat_c = [rng.uniform(*c_range) for _ in dims]
 
+    # Optionally orce all utilities to be positive
     if positive:
         for i in range(n):
             u_c[i] = - u_m[i] * min(u_nu[i])

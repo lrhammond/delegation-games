@@ -18,17 +18,11 @@ to_plot = { "ca": "all",
 # orange = "#c96532"
 # blue = "#4244a1"
 
+# Define custom colours for plots
 teal = (47.0/255.0, 95.0/255.0, 82.0/255.0)
 red = (161.0/255.0, 41.0/255.0, 47.0/255.0)
 orange = (224.0/255.0, 105.0/255.0, 63.0/255.0)
 blue = (88.0/255.0, 143.0/255.0, 188.0/255.0)
-
-# Experiment 1
-def re_plot_all_exp_1(sizes, variables, others, name, bounds=False):
-
-    exp_1_combinations = list(itertools.product(sizes, variables, others))
-    for (dims, variable, v_others) in exp_1_combinations:
-         plot_exp_1(dims, variable, v_others, name, bounds=bounds)
 
 def plot_exp_1(dims, variable, v_others, name, bounds=False):
 
@@ -173,7 +167,8 @@ def plot_exp_2(sizes, dists, name):
     #     palette = [teal, orange, teal]
 
     # return
-        
+
+# Code for inserting grid of LaTeX figures in paper appendix
 def print_latex_figure(dims, variables, others, name):
 
     print("\\begin{figure}")
