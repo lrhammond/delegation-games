@@ -37,7 +37,7 @@ def get_stat_general(dg:DelegationGame, max_welfare_regret:float, am:AlignmentMe
     principals, agents = dg
     epics = [alignment_distance(am, p, a) for p, a in zip(principals.payoffs, agents.payoffs)]
     target_payoffs = agents if use_agents else principals
-    strat = get_strategy_with_welfare_regret(target_payoffs, target_welfare_regret=rng.uniform(min_welfare_regret, max_welfare_regret))
+    strat = get_strategy_with_welfare_regret(target_payoffs, target_welfare_regret=rng.uniform(min_welfare_regret, max_welfare_regret), rng=rng)
     welfare_regret = welfare_regret_general(agents.payoffs, strat)
     principals_welfare_regret = welfare_regret_general(principals.payoffs, strat)
     return SimpleStat(sum(epics), welfare_regret, principals_welfare_regret)
@@ -53,13 +53,13 @@ def optimal_pessimal_welfare_strategies(payoffs:List[np.ndarray], welfare:Welfar
     ismin = pure_welfares == min_welfare
     return ismax / ismax.sum(), ismin / ismin.sum()
 
-def sample_strategy(n_strats:int):
+def sample_strategy(n_strats:int, rng):
     '''
     Randomly uniformly sample a mixed strategy over the given number of options
     '''
-    return sample_simplex(n_strats)
+    return sample_simplex(rng, n_strats)
 
-def get_strategy_with_welfare_regret(game:FlatGame, target_welfare_regret:float):
+def get_strategy_with_welfare_regret(game:FlatGame, target_welfare_regret:float, rng):
     '''
     For given game, generate a strategy with specified welfare regret.
 
@@ -83,7 +83,7 @@ def get_strategy_with_welfare_regret(game:FlatGame, target_welfare_regret:float)
     if target_welfare_regret > pessimal_regret:
         strat = pessimal_strat
     else:
-        sample_strat = sample_strategy(d_u)
+        sample_strat = sample_strategy(d_u, rng)
         sample_regret = welfare_regret_general(game.payoffs, sample_strat)
         if target_welfare_regret < sample_regret:
             # mix with optimal strategy
