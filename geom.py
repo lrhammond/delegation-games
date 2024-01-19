@@ -47,16 +47,16 @@ def random_heading_in_zero_mean_subspace(dim:int, rng) -> np.ndarray:
     # normal variates are spherically symmetric
     # but we also need to satisfy zero mean
     # TODO is this still usefully 'uniform' after the projection? Possible to sample directly from dim-1 subspace?
-    return standardise(rng.normal(dim))
+    return standardise(rng.randn(dim))
 
-def random_epic_distance_step(v:np.ndarray, d_epic:float) -> np.ndarray:
+def random_epic_distance_step(v:np.ndarray, d_epic:float, rng) -> np.ndarray:
     '''
     Generate a random utility which has given epic distance from the given utility.
 
     Result is flattened, centred, and normalised.
     '''
     u = standardise(v)
-    random_heading = random_heading_in_zero_mean_subspace(v.shape[0])
+    random_heading = random_heading_in_zero_mean_subspace(v.shape[0], rng)
     theta = 2 * np.arcsin(np.minimum(1, d_epic))
     rotated = rotate_in_plane(u, random_heading, theta)
     return rotated
