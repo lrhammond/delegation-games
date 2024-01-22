@@ -1,51 +1,161 @@
-import nashpy as nash
 import numpy as np
+import itertools
+import measures
 
-# Prisoner's Dilemma
-pd = nash.Game(np.array([[3, 0], [5, 1]]), np.array([[3, 5], [0, 1]]))
+# The particular welfare function we use in the paper and experiments
+def average_utilitarian(u):
 
-# Negative Prisoner's Dilemma
-pd_negative = nash.Game(np.array([[-3, -10], [0, -5]]), np.array([[-3, 0], [-10, -5]]))
+    return sum(u) / len(u)
 
-# Game of Chicken
-chicken = nash.Game(np.array([[0, -1], [1, -10]]), np.array([[0, 1], [-1, -10]]))
+class UtilityFunction:
 
-# Stug Hunt
-hunt = nash.Game(np.array([[5, 0], [2, 1]]), np.array([[5, 2], [0, 1]]))
+    def __init__(self, u_nu, m, c, decimals=5):
+        self.nu = np.around(u_nu, decimals=decimals)
+        self.m = np.around(m, decimals=decimals)
+        self.c = np.around(c, decimals=decimals)
+    
+    def __call__(self, s):
+        return self.m * self.nu[*s] + self.c
+    
+    def flatten(self, normalised=False):
+        flat = self.nu.flatten()
+        return flat if normalised else self.m * flat + self.c
+    
+class DelegationGame:
 
-# Stug Hunt
-coop_hunt = nash.Game(np.array([[5, 1], [1, 1]]), np.array([[5, 1], [1, 1]]))
+    def __init__(self, u, u_hat):
+        self.u = u
+        self.u_hat = u_hat
+        self.dims = u[0].nu.shape
+        self.S = tuple(itertools.product(*[range(d) for d in self.dims]))
+        self.size = np.prod(self.dims)
+        self.n = len(self.dims)
 
-# Matching Pennies
-mp = nash.Game(np.array([[1, -1], [-1, 1]]), np.array([[-1, 1], [1, -1]]))
+    # Calculate IA from game
+    def ia(self, metric):
 
-# Battle of the Sexes
-bos = nash.Game(np.array([[1, 0], [0, 2]]), np.array([[2, 0], [0, 1]]))
+        return np.array([measures.individual_alignment(self.u[i].nu, self.u_hat[i].nu, metric) for i in range(self.n)])
 
-# Test Game
-test = nash.Game(np.array([[1.0, 0.9999], [1.0, 1.00001]]), np.array([[1.0, 1.00001], [1.0, 1.0]]))
+    # Calculate CA from game
+    def ca(self, metric, agents=False):
+        
+        utilities = self.u if agents else self.u_hat
+        u_nu = [u_i.nu for u_i in utilities]
+        u_m = [u_i.m for u_i in utilities]
+        
+        return measures.collective_alignment(u_nu, u_m, metric)
+    
+    # Compute the pure approximate NEs of the game (with some additional tolerance)
+    def get_pure_eps_NEs(self, eps=[], tol=1e-10):
+        
+        if len(eps) == 0:
+            eps = [0.0 for _ in self.dims]
+        NEs = []
+        for s in self.S:
+            for i in range(self.n):
+                s_i = self.u[i].m * self.u[i].nu[*s[:i],:,*s[i+1:]] + self.u[i].c
+                u_min = np.min(s_i)
+                u_max = np.max(s_i)
+                if self.u[i](s) + tol < u_min + (1 - eps[i]) * (u_max - u_min):
+                    break
+                if i == self.n - 1:
+                    NEs += [s]
+                    
+        return NEs
+    
+    def w(self, s, welfare=average_utilitarian):
+        
+        return welfare([u_i(s) for u_i in self.u])
+    
+    def w_hat(self, s, welfare=average_utilitarian):
+        
+        return welfare([u_hat_i(s) for u_hat_i in self.u_hat])
+    
+    # See the paper for definition of these terms
+    def w_bounds(self, welfare=average_utilitarian):
 
-games = {
-    "Prisoner's dilemma": pd,
-    "Prisoner's dilemma (negative pay-offs)": pd_negative,
-    "Game of Chicken": chicken,
-    "Stug Hut": hunt,
-    "Matching Pennies": mp,
-    "Battle of the Sexes": bos,
-    "Test game": test}
+        w_minus = welfare([self.u[i].m * np.min(self.u[i].nu) + self.u[i].c for i in range(self.n)])
+        w_plus = welfare([self.u[i].m * np.max(self.u[i].nu) + self.u[i].c for i in range(self.n)])
 
-def uniform_2x2_payoff() -> np.ndarray:
-    return np.random.uniform(size=(2, 2))
+        return w_minus, w_plus
+    
+    # As above
+    def w_hat_bounds(self, welfare=average_utilitarian):
 
-def uniform_2x2() -> nash.Game:
-    return nash.Game(uniform_2x2_payoff(), uniform_2x2_payoff())
+        w_hat_minus = welfare([self.u_hat[i].m * np.min(self.u_hat[i].nu) + self.u_hat[i].c for i in range(self.n)])
+        w_hat_plus = welfare([self.u_hat[i].m * np.max(self.u_hat[i].nu) + self.u_hat[i].c for i in range(self.n)])
 
-def uniform_2x2_aligned() -> nash.Game:
-    payoff = uniform_2x2_payoff()
-    return nash.Game(payoff, payoff)
+        return w_hat_minus, w_hat_plus
+    
+    # Given a certain level of cooperative capabilities, only some strategies will be played; we compute them here (see paper for details)
+    def get_played_strategies(self, NEs, eps_NEs, cc, tol=1e-6):
+        
+        w_0 = min([self.w(s) for s in NEs])
+        w_eps = min([self.w(s) for s in eps_NEs])
+        w_star = max([self.w(s) for s in self.S])
 
-def swap_2x2_0(g:nash.Game, new_payoff:np.ndarray) -> nash.Game:
-    return nash.Game(new_payoff, g.payoff_matrices[1])
+        w_min = w_eps + cc * (w_star - w_0)
+        w_max = w_eps + (w_star - w_0)
+        w_mean = 0.5 * (w_max + w_min)
 
-def swap_2x2_1(g:nash.Game, new_payoff:np.ndarray) -> nash.Game:
-    return nash.Game(g.payoff_matrices[0], new_payoff)
+        played = []
+        closest_dist = 10e6 
+
+        for s in self.S:
+            w_s = self.w(s)
+            if w_s + tol > w_min and w_s - tol < w_max:
+                played += [s]
+            elif abs(w_mean - w_s) < closest_dist:
+                closest = s
+                closest_dist = abs(w_mean - w_s)
+        
+        return [closest] if played == [] else played
+    
+    def print(self):
+
+        print("\n--- Agents ---\n")
+        for i in range(self.n):
+            print("Agent {}:".format(i))
+            print(self.u[i].m * self.u[i].nu + self.u[i].c)
+        # print("\n--- Principals ---\n")
+        # for i in range(self.n):
+        #     print("Principal {}:".format(i))
+        #     print(self.u_hat[i].m * self.u_hat[i].nu + self.u_hat[i].c)
+    
+# Randomly generate a delegation game given chosen values for IA and CA and the dimensions of the game
+def generate_delegation_game(dims, ia, ca, metric, rng, agents_first=False, m_range=(0.5,1.5), c_range=(-1.0,1.0), positive=False):
+
+    size = np.prod(dims)
+    n = len(dims)
+
+    adjusted_u_nu = None
+
+    while adjusted_u_nu == None:
+
+        # print(k)
+        u_nu = [metric.sample(size) for _ in dims]
+        u_m = [rng.uniform(*m_range) for _ in dims]
+        adjusted_u_nu = metric.adjust_ca(u_nu, u_m, ca, metric)
+    
+    u_nu = adjusted_u_nu
+    u_c = [rng.uniform(*c_range) for _ in dims]
+
+    u_hat_nu = []
+    for i in range(n):
+
+        u_hat_i_nu = metric.sample(size)
+        u_hat_nu += [metric.adjust_ia(u_nu[i], u_hat_i_nu, ia[i])]
+
+    u_hat_m = [rng.uniform(*m_range) for _ in dims]
+    u_hat_c = [rng.uniform(*c_range) for _ in dims]
+
+    # Optionally orce all utilities to be positive
+    if positive:
+        for i in range(n):
+            u_c[i] = - u_m[i] * min(u_nu[i])
+            u_hat_c[i] = - u_hat_m[i] * min(u_hat_nu[i])
+
+    u = [UtilityFunction(u_nu[i].reshape(dims), u_m[i], u_c[i]) for i in range(n)]
+    u_hat = [UtilityFunction(u_hat_nu[i].reshape(dims), u_hat_m[i], u_hat_c[i]) for i in range(n)]
+
+    return DelegationGame(u, u_hat) if agents_first else DelegationGame(u_hat, u)
