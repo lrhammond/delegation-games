@@ -1,3 +1,4 @@
+import os
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -81,6 +82,7 @@ def plot_exp_1(dims, variable, v_others, name, bounds=False):
     plt.tight_layout()
 
     pname = "exp1/plots/{}.png".format(code)
+    os.makedirs(os.path.dirname(pname), exist_ok=True)
     plt.savefig(pname, dpi=300)
 
     return
@@ -151,6 +153,7 @@ def plot_exp_2(sizes, dists, name):
             ax.spines[axis].set_linewidth(2)
         plt.tight_layout()
         pname = "exp2/plots/{}-{}.png".format(k, name)
+        os.makedirs(os.path.dirname(pname), exist_ok=True)
         plt.savefig(pname, dpi=300)
 
     # normalised_data = data.sub(data["w_hat_minus"], axis="index")

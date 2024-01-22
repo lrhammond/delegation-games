@@ -90,6 +90,7 @@ def exp_1(dims, repetitions, increments, variable, rng, v_others=1.0, measure="E
                 strategies = {"NEs":NEs, "eps_NEs":eps_NEs, "played":played}
 
                 # Save all this info for later
+                os.makedirs(os.path.dirname(gname), exist_ok=True)
                 with open(gname, 'wb') as handle:
                     pickle.dump({"measures": x, "game": G, "strategies": strategies}, handle)
 
@@ -170,11 +171,13 @@ def run_exp_1(sizes=SIZES[:2], variables=VARIABLES, others=OTHERS, repetitions=1
 
             sname = "exp1/random_states/{}.pickle".format(code)
             rs = rng.get_state()
+            os.makedirs(os.path.dirname(sname), exist_ok=True)
             with open(sname, 'wb') as handle:
                 pickle.dump(rs, handle)
             rng.set_state(rs)
 
             data = exp_1(dims, repetitions, increments, variable, rng, v_others=v_others, force_m=force_m, force_c=force_c, name=name)
+            os.makedirs(os.path.dirname(fname), exist_ok=True)
             data.to_csv(fname)
 
             utils.plot_exp_1(dims, variable, v_others, name, bounds=True)
@@ -230,7 +233,7 @@ def exp_2(dims, repetitions, rng, dists=["eps_NEs","all","played","NEs"], sample
             strategies["all"] = G.S
 
             # G, NEs, eps_NEs, played, x = get_new_game()
-        
+            os.makedirs(os.path.dirname(gname), exist_ok=True)
             with open(gname, 'wb') as handle:
                 pickle.dump({"measures": x, "game": G, "strategies": strategies}, handle)
 
@@ -244,6 +247,7 @@ def exp_2(dims, repetitions, rng, dists=["eps_NEs","all","played","NEs"], sample
 
         sname = "exp2/random_states/{}.pickle".format(code)
         rs = rng.get_state()
+        os.makedirs(os.path.dirname(sname), exist_ok=True)
         with open(sname, 'wb') as handle:
             pickle.dump(rs, handle)
 
@@ -320,18 +324,16 @@ def run_exp_2(sizes=SIZES[:2], dists=["eps_NEs","all","played","NEs"], repetitio
 
     for dims in exp_2_combinations:
         
-        # If we've already generated data for a particular size of game
-        if not os.path.exists(fname):
+        data = exp_2(dims, repetitions, rng, dists=dists, samples=samples, increments=increments, measure="EPIC", force_m=force_m, force_c=force_c, name=name)
 
-            data = exp_2(dims, repetitions, rng, dists=dists, samples=samples, increments=increments, measure="EPIC", force_m=force_m, force_c=force_c, name=name)
+        for d in dists:
 
-            for d in dists:
+            code = "{}-{}-{}".format("x".join(map(str,dims)), d, name)
+            fname = "exp2/data/{}.csv".format(code)
+            os.makedirs(os.path.dirname(fname), exist_ok=True)
+            data[d].to_csv(fname)
 
-                code = "{}-{}-{}".format("x".join(map(str,dims)), d, name)
-                fname = "exp2/data/{}.csv".format(code)
-                data[d].to_csv(fname)
-
-            utils.plot_exp_2(sizes, dists, name)
+    utils.plot_exp_2(sizes, dists, name)
 
 
 
