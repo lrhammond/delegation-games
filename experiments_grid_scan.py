@@ -6,7 +6,7 @@ from tqdm import tqdm
 import itertools
 import os
 import pickle
-import utils
+import experiments_plotting_utils
 import inference
 
 # Default sets of values for experiments 1 and 2
@@ -180,7 +180,7 @@ def run_exp_1(sizes=SIZES[:2], variables=VARIABLES, others=OTHERS, repetitions=1
             os.makedirs(os.path.dirname(fname), exist_ok=True)
             data.to_csv(fname)
 
-            utils.plot_exp_1(dims, variable, v_others, name, bounds=True)
+            experiments_plotting_utils.plot_exp_1(dims, variable, v_others, name, bounds=True)
 
 def exp_2(dims, repetitions, rng, dists=["eps_NEs","all","played","NEs"], samples=1000, increments=100, measure="EPIC", force_m=False, force_c=False, name=""):
 
@@ -333,7 +333,7 @@ def run_exp_2(sizes=SIZES[:2], dists=["eps_NEs","all","played","NEs"], repetitio
             os.makedirs(os.path.dirname(fname), exist_ok=True)
             data[d].to_csv(fname)
 
-    utils.plot_exp_2(sizes, dists, name)
+    experiments_plotting_utils.plot_exp_2(sizes, dists, name)
 
 
 
