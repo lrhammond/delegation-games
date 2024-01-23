@@ -50,7 +50,7 @@ def exp_1(dims, repetitions, increments, variable, rng, v_others=1.0, measure="E
             else:
                 x[variable] = v
 
-            code = "{}-{}-{}-{}-{}".format(variable, "x".join(map(str,dims)), v_others, r, name)
+            code = "{}-{}-{}-{}-{}-{}".format(variable, v, "x".join(map(str,dims)), v_others, r, name)
             gname = "exp1/games/{}.pickle".format(code)
 
             # Avoids creating a new game every time
