@@ -2,7 +2,7 @@ import numpy as np
 from typing import List, NamedTuple, Tuple
 
 from generate_games import flatgame_to_game, DelegationGame, FlatGame
-from alignment import distance as alignment_distance, AlignmentMetric
+from alignment import AlignmentMetric
 from welfare import welf_regret, princ_welf_regret, welfare_regret_general, Welfare
 from geom import sample_simplex
 
@@ -18,7 +18,7 @@ def get_stat_nash(dg:DelegationGame, am:AlignmentMetric) -> SimpleStat:
     NB requires 2-agent in current setup
     '''
     principals, agents = dg
-    epics = [alignment_distance(am, p, a) for p, a in zip(principals.payoffs, agents.payoffs)]
+    epics = [am.distance(p, a) for p, a in zip(principals.payoffs, agents.payoffs)]
     principals_game = flatgame_to_game(principals)
     agents_game = flatgame_to_game(agents)
     welfare_regret = welf_regret(agents_game)
@@ -35,7 +35,7 @@ def get_stat_general(dg:DelegationGame, max_welfare_regret:float, am:AlignmentMe
     :param use_agent: if True, target agents' welfare regret, otherwise target principals' welfare regret
     '''
     principals, agents = dg
-    epics = [alignment_distance(am, p, a) for p, a in zip(principals.payoffs, agents.payoffs)]
+    epics = [am.distance(p, a) for p, a in zip(principals.payoffs, agents.payoffs)]
     target_payoffs = agents if use_agents else principals
     strat = get_strategy_with_welfare_regret(target_payoffs, target_welfare_regret=rng.uniform(min_welfare_regret, max_welfare_regret), rng=rng)
     welfare_regret = welfare_regret_general(agents.payoffs, strat)
