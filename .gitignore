@@ -4,5 +4,6 @@ venv
 logs
 .ipynb_checkpoints
 .DS_Store
+.vscode
 exp1
 exp2
